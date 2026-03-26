@@ -6,13 +6,9 @@
 
 "집:착"은 실거주 시의 주변의 리스크(소음, 인프라, 재난, 치안)로 인한 생활 만족도 저하 예방을 위한 사전 분석 서비스입니다.
 
----
-
 ## 🚀 주요 기능
 
 - **Update Soon...**
-
----
 
 ## 🛠️ Backend 기술 스택
 
@@ -28,8 +24,6 @@
 - **Compute**: GCP Compute Engine
 - **OS**: Ubuntu 22.04 LTS
 - **CI/CD**: GitHub Actions (SSH Deploy)
-
----
 
 ## 📁 프로젝트 구조
 
@@ -63,13 +57,9 @@ Project_JIP-CHAK_BE/
 └── requirements.txt        # 프로젝트 의존성 목록
 ```
 
----
-
 ## 🌐 API 구조
 
 ### Update Soon...
-
----
 
 ## 🎯 개발 및 데이터 지침
 
@@ -118,8 +108,6 @@ Update Soon...
 * GitHub Secrets에 저장된 환경 변수로 서버 내 `.env` 파일을 갱신합니다.
 * 최신 Docker 이미지를 Pull 받아 컨테이너를 재시작합니다.
 
----
-
 ## 🎯 개발 가이드
 
 ### Git 컨벤션
@@ -143,15 +131,11 @@ Update Soon...
 | **`chore`** | **기타 자잘한 수정** | `.gitignore` 수정, 빌드 스크립트 수정 등 (소스코드 건드리지 않음) |
 | **`revert`** | **커밋 되돌리기** | 이전 커밋을 취소할 때 사용 |
 
----
-
 ## 📝 License
 
 ![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge&logo=license&logoColor=white)
 
 본 프로젝트의 소스 코드는 **MIT License**를 따릅니다.
-
----
 
 ## 👥 Contact
 
