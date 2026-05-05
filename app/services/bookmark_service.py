@@ -1,7 +1,7 @@
-# 불완전: 저장 매물 로직은 구현됐지만 실제 PostgreSQL에서 join, unique constraint, 삭제 rowcount 검증이 필요함.
+# 불완전: 저장 매물 로직은 구현됐지만 실제 PostgreSQL 통합 테스트가 필요함.
 from uuid import UUID
 
-from sqlalchemy import and_, delete, func, select
+from sqlalchemy import and_, case, delete, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import grade_from_score, score_status
@@ -17,25 +17,48 @@ async def list_bookmarks(db: AsyncSession, user: User, status: str, page: int, s
     if page < 1 or size < 1:
         raise AppException(400, "INVALID_INPUT_VALUE", "페이지 값이 올바르지 않습니다.")
 
-    rows = (
-        await db.execute(
-            select(Bookmark, Report)
-            .join(Report, Bookmark.report_id == Report.report_id)
-            .where(Bookmark.user_id == user.user_id)
-            .order_by(Bookmark.created_at.desc())
+    weighted_score = _weighted_score_expression(user)
+    base_filter = Bookmark.user_id == user.user_id
+    count_query = (
+        select(
+            func.count().label("total_cnt"),
+            func.coalesce(func.sum(case((weighted_score >= 80, 1), else_=0)), 0).label("safe_cnt"),
+            func.coalesce(
+                func.sum(case((and_(weighted_score >= 60, weighted_score < 80), 1), else_=0)),
+                0,
+            ).label("caution_cnt"),
+            func.coalesce(func.sum(case((weighted_score < 60, 1), else_=0)), 0).label("risk_cnt"),
         )
-    ).all()
+        .select_from(Bookmark)
+        .join(Report, Bookmark.report_id == Report.report_id)
+        .where(base_filter)
+    )
+    counts_row = (await db.execute(count_query)).one()
 
-    items = [_bookmark_item(bookmark, report) for bookmark, report in rows]
-    counts = _filter_counts(items)
-    filtered = items if status == "ALL" else [item for item in items if item["score_status"] == status]
-    start = (page - 1) * size
+    query = (
+        select(Bookmark, Report, weighted_score.label("weighted_score"))
+        .join(Report, Bookmark.report_id == Report.report_id)
+        .where(base_filter)
+        .order_by(Bookmark.created_at.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+    if status != "ALL":
+        query = query.where(_status_filter(status, weighted_score))
+
+    rows = (await db.execute(query)).all()
+    total_elements = _count_for_status(counts_row, status)
     return {
-        "filter_counts": counts,
-        "content": filtered[start : start + size],
+        "filter_counts": {
+            "total_cnt": int(counts_row.total_cnt),
+            "safe_cnt": int(counts_row.safe_cnt),
+            "caution_cnt": int(counts_row.caution_cnt),
+            "risk_cnt": int(counts_row.risk_cnt),
+        },
+        "content": [_bookmark_item(bookmark, report, weighted_score) for bookmark, report, weighted_score in rows],
         "page": page,
         "size": size,
-        "total_elements": len(filtered),
+        "total_elements": total_elements,
     }
 
 
@@ -77,15 +100,16 @@ async def is_bookmarked(db: AsyncSession, user: User, report_id: UUID) -> bool:
     return bool(count)
 
 
-def _bookmark_item(bookmark: Bookmark, report: Report) -> dict:
-    status = score_status(report.total_score)
-    grade = grade_from_score(report.total_score)
+def _bookmark_item(bookmark: Bookmark, report: Report, weighted_score: int) -> dict:
+    weighted_score = int(weighted_score or 0)
+    status = score_status(weighted_score)
+    grade = grade_from_score(weighted_score)
     return {
         "property_id": report.report_id,
         "report_id": report.report_id,
         "address": report.address,
         "description": report.address_detail,
-        "score": report.total_score,
+        "score": weighted_score,
         "grade": grade,
         "score_status": status,
         "tags": [grade],
@@ -94,10 +118,38 @@ def _bookmark_item(bookmark: Bookmark, report: Report) -> dict:
     }
 
 
-def _filter_counts(items: list[dict]) -> dict[str, int]:
-    return {
-        "total_cnt": len(items),
-        "safe_cnt": sum(item["score_status"] == "SAFE" for item in items),
-        "caution_cnt": sum(item["score_status"] == "CAUTION" for item in items),
-        "risk_cnt": sum(item["score_status"] == "RISK" for item in items),
-    }
+def _status_filter(status: str, weighted_score):
+    if status == "SAFE":
+        return weighted_score >= 80
+    if status == "CAUTION":
+        return and_(weighted_score >= 60, weighted_score < 80)
+    return weighted_score < 60
+
+
+def _count_for_status(counts_row, status: str) -> int:
+    if status == "SAFE":
+        return int(counts_row.safe_cnt)
+    if status == "CAUTION":
+        return int(counts_row.caution_cnt)
+    if status == "RISK":
+        return int(counts_row.risk_cnt)
+    return int(counts_row.total_cnt)
+
+
+def _weighted_score_expression(user: User):
+    security_weight = literal(user.security_weight)
+    noise_weight = literal(user.noise_weight)
+    medical_weight = literal(user.medical_weight)
+    flood_weight = literal(user.flood_weight)
+    congestion_weight = literal(user.congestion_weight)
+
+    return func.round(
+        (
+            func.coalesce(Report.security_score, literal(0)) * security_weight
+            + func.coalesce(Report.noise_score, literal(0)) * noise_weight
+            + func.coalesce(Report.medical_score, literal(0)) * medical_weight
+            + func.coalesce(Report.flood_score, literal(0)) * flood_weight
+            + func.coalesce(Report.congestion_score, literal(0)) * congestion_weight
+        )
+        / 100
+    )
