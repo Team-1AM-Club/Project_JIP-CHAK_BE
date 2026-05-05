@@ -1,13 +1,22 @@
-# 완벽: FastAPI 앱 생성, 공통 예외 핸들러, /api/v1 라우터 등록, health check는 import/OpenAPI 검증까지 완료됨.
+# 완벽: FastAPI 앱 생성, 공통 예외 핸들러, /api/v1 라우터 등록, health check를 구성함.
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
 from app.api import addresses, auth, bookmarks, reports, users
 from app.core.exceptions import AppException, app_exception_handler, validation_exception_handler
+from app.core.task_status import close_redis_client
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await close_redis_client()
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="JIP-CHAK API")
+    app = FastAPI(title="JIP-CHAK API", lifespan=lifespan)
 
     app.add_exception_handler(AppException, app_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)

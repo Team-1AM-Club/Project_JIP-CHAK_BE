@@ -4,7 +4,6 @@ from typing import Generic, TypeVar
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from pydantic.generics import GenericModel
 
 T = TypeVar("T")
 
@@ -15,7 +14,7 @@ class ErrorBody(BaseModel):
     details: object | None = None
 
 
-class SuccessResponse(GenericModel, Generic[T]):
+class SuccessResponse(BaseModel, Generic[T]):
     success: bool = True
     data: T
     error: None = None
@@ -27,11 +26,10 @@ class ErrorResponse(BaseModel):
     error: ErrorBody
 
 
-def success_response(data: object, status_code: int = 200, **extra_fields: object) -> JSONResponse:
-    content = {"success": True, **extra_fields, "data": data, "error": None}
+def success_response(data: object, status_code: int = 200) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
-        content=jsonable_encoder(content),
+        content=jsonable_encoder({"success": True, "data": data, "error": None}),
     )
 
 
