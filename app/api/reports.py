@@ -21,8 +21,9 @@ async def request_analysis(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await report_service.request_analysis(db, current_user, request.model_dump(), background_tasks)
-    return success_response(result["data"], status=result["status"])
+    return success_response(
+        await report_service.request_analysis(db, current_user, request.model_dump(), background_tasks)
+    )
 
 
 @router.get("/status/{task_id}")

@@ -1,4 +1,4 @@
-# 불완전: 비교 계산 로직은 구현됐지만 실제 report/bookmark 데이터 기반 통합 테스트와 추천 문구 고도화가 필요함.
+# 불완전: 비교 계산 로직은 구현됐지만 실제 report/bookmark 데이터 기반 통합 테스트가 필요함.
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,7 +68,7 @@ def _metric_comparison(reports, report_scores: dict) -> list[dict]:
         metrics.append(
             {
                 "type": category,
-                "label": meta["title"].replace(" 리스크", "").replace(" 접근성", ""),
+                "label": _metric_label(meta["title"]),
                 "icon": meta["icon"],
                 "scores": scores,
                 "best_report_id": best["report_id"],
@@ -90,6 +90,10 @@ def _recommendation(reports, totals: dict) -> dict:
 def _strength_tags(scores: dict[str, int]) -> list[str]:
     best_category = max(scores, key=scores.get)
     return [REPORT_CATEGORIES[best_category]["title"]]
+
+
+def _metric_label(title: str) -> str:
+    return title.replace(" 리스크", "").replace(" 접근성", "")
 
 
 def _short_address(address: str) -> str:

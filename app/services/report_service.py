@@ -1,4 +1,5 @@
 # 불완전: 리포트 조회/점수 응답은 구현됐지만 분석 원천 데이터는 실제 공공데이터 대신 mock interface를 사용함.
+import logging
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -18,6 +19,8 @@ from app.services.analysis import congestion, flood, medical, noise, security
 from app.services.analysis.scorer import calculate_total_score, summary_for_score
 from app.services.user_service import weights_from_user
 
+logger = logging.getLogger(__name__)
+
 
 async def request_analysis(
     db: AsyncSession,
@@ -25,31 +28,32 @@ async def request_analysis(
     payload: dict,
     background_tasks: BackgroundTasks,
 ) -> dict:
-    if not _is_seoul_address(payload["address"], payload.get("road_addr"), payload.get("jibun_addr")):
+    region_code = payload.get("dong_code")
+    if not _is_seoul_location(region_code, payload["address"], payload.get("road_addr"), payload.get("jibun_addr")):
         raise AppException(400, "OUT_OF_SERVICE_AREA", "서울시 내 주소만 분석 가능합니다.")
 
-    region_code = payload.get("dong_code") or "UNKNOWN"
+    report_region_code = region_code or "UNKNOWN"
     cached_report = await db.scalar(
         select(Report)
         .where(
-            Report.region_code == region_code,
+            Report.region_code == report_region_code,
             Report.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
         )
         .order_by(desc(Report.created_at))
         .limit(1)
     )
     if cached_report is not None:
+        category_scores = _category_scores(cached_report)
+        weighted_total_score = calculate_total_score(category_scores, weights_from_user(user))
         return {
             "status": "READY",
-            "data": {
-                "report_id": cached_report.report_id,
-                "dong_code": cached_report.region_code,
-                "dong_name": _dong_name(cached_report.address),
-                "address": cached_report.address,
-                "total_score": cached_report.total_score,
-                "cached": True,
-                "analyzed_at": cached_report.created_at,
-            },
+            "report_id": cached_report.report_id,
+            "dong_code": cached_report.region_code,
+            "dong_name": _dong_name(cached_report.address),
+            "address": cached_report.address,
+            "total_score": weighted_total_score,
+            "cached": True,
+            "analyzed_at": cached_report.created_at,
         }
 
     task_id = uuid4()
@@ -63,18 +67,16 @@ async def request_analysis(
             "estimated_remaining_seconds": 15,
         },
     )
-    background_tasks.add_task(run_mock_analysis, task_id, user.user_id, payload, region_code)
+    background_tasks.add_task(run_mock_analysis, task_id, user.user_id, payload, report_region_code)
 
     return {
         "status": "PROCESSING",
-        "data": {
-            "task_id": task_id,
-            "dong_code": region_code,
-            "dong_name": _dong_name(payload["address"]),
-            "address": payload["address"],
-            "estimated_seconds": 15,
-            "cached": False,
-        },
+        "task_id": task_id,
+        "dong_code": report_region_code,
+        "dong_name": _dong_name(payload["address"]),
+        "address": payload["address"],
+        "estimated_seconds": 15,
+        "cached": False,
     }
 
 
@@ -117,6 +119,7 @@ async def run_mock_analysis(task_id: UUID, user_id: UUID, payload: dict, region_
             )
         except Exception as exc:
             await db.rollback()
+            logger.exception("분석 작업 실패: task_id=%s", task_id)
             await set_task_status(
                 task_id,
                 {
@@ -244,11 +247,17 @@ def _create_report_from_analysis_data(user: User, payload: dict, region_code: st
     report.medical_score = scores["medical"]
     report.noise_score = scores["noise"]
     report.congestion_score = scores["congestion"]
-    report.total_score = calculate_total_score(scores, weights_from_user(user))
+    report.total_score = _base_total_score(scores)
     return report
 
 
-def _is_seoul_address(*addresses: str | None) -> bool:
+def _base_total_score(scores: dict[str, int]) -> int:
+    return round(sum(scores.values()) / len(scores))
+
+
+def _is_seoul_location(dong_code: str | None, *addresses: str | None) -> bool:
+    if dong_code:
+        return dong_code.startswith("11")
     return any(address and ("서울" in address or "Seoul" in address) for address in addresses)
 
 

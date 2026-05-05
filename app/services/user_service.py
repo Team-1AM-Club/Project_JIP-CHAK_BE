@@ -1,4 +1,4 @@
-# 불완전: 사용자 비즈니스 로직은 구현됐지만 실제 DB commit/constraint와 함께 통합 테스트가 필요함.
+# 불완전: 사용자 비즈니스 로직은 구현됐지만 실제 DB commit/constraint와 통합 테스트가 필요함.
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import USER_TYPE_PRESETS, user_type_by_id
