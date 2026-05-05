@@ -1,1 +1,4 @@
-# 모든 모델을 Import하는 파일 (Alembic용)
+from sqlalchemy.orm import DeclarativeBase
+
+class Base(DeclarativeBase):
+    pass

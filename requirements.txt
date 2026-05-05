@@ -1,1 +1,6 @@
-# 의존성 목록
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+asyncpg
+pydantic-settings
+alembic
