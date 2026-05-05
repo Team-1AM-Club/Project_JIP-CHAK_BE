@@ -12,5 +12,26 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  test-db:
+    image: postgres:16
+    container_name: jipchak_test_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jipchak_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: jipchak_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
 volumes:
   pgdata:
+  test_pgdata:

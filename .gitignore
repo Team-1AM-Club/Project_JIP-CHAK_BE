@@ -1,27 +1,50 @@
-# --- IDE 설정 (Pycharm, VS Code) ---
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# --- Python 캐시 ---
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# --- 환경변수 및 보안 ---
-.env
-secrets.json
-
-# --- 가상환경 ---
+# Virtual environments
+.venv/
 venv/
 env/
-.venv/
 .env/
 
-# --- 작업환경 ---
+# Environment and secrets
+.env
+.env.*
+!.env.example
+secrets.json
+*.pem
+*.key
+
+# Local app/tool state
 .agent/
 
-# --- OS 파일 ---
+# Logs and runtime files
+*.log
+logs/
+*.pid
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Alembic/editor temp files
+*.bak
+*.tmp
+
+# OS files
 .DS_Store
 Thumbs.db
