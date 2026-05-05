@@ -1,1 +1,16 @@
-# 로컬 개발 환경용
+services:
+  db:
+    image: postgres:16
+    container_name: jipchak_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jipchak
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

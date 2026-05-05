@@ -19,6 +19,9 @@ env/
 .venv/
 .env/
 
+# --- 작업환경 ---
+.agent/
+
 # --- OS 파일 ---
 .DS_Store
 Thumbs.db
