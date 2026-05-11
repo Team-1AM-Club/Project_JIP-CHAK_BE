@@ -188,8 +188,22 @@ async def detail_response(db: AsyncSession, user: User, report_id: UUID, categor
         "congestion": congestion.get_congestion_detail,
     }
     data = handlers[category](report)
-    data["grade"] = grade_from_score(data["score"])
-    return data
+    meta = REPORT_CATEGORIES[category]
+    score = data["score"]
+    return {
+        "report_id": report.report_id,
+        "address": report.address,
+        "region_code": report.region_code,
+        "category": category,
+        "title": meta["title"],
+        "score": score,
+        "base_score": data.get("base_score", score),
+        "grade": grade_from_score(score),
+        "summary": data["summary"],
+        "indicators": data["indicators"],
+        "visualization": data.get("visualization"),
+        "data_source": data["data_source"],
+    }
 
 
 def category_scores(report: Report) -> dict[str, int]:
