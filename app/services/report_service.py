@@ -33,15 +33,17 @@ async def request_analysis(
         raise AppException(400, "OUT_OF_SERVICE_AREA", "서울시 내 주소만 분석 가능합니다.")
 
     report_region_code = region_code or "UNKNOWN"
-    cached_report = await db.scalar(
-        select(Report)
-        .where(
-            Report.region_code == report_region_code,
-            Report.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
+    cached_report = None
+    if not payload.get("force_refresh", False):
+        cached_report = await db.scalar(
+            select(Report)
+            .where(
+                Report.region_code == report_region_code,
+                Report.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
+            )
+            .order_by(desc(Report.created_at))
+            .limit(1)
         )
-        .order_by(desc(Report.created_at))
-        .limit(1)
-    )
     if cached_report is not None:
         category_scores = _category_scores(cached_report)
         weighted_total_score = calculate_total_score(category_scores, weights_from_user(user))
@@ -235,24 +237,29 @@ def _create_report_from_analysis_data(user: User, payload: dict, region_code: st
         region_code=region_code,
         lat=payload["lat"],
         lng=payload["lng"],
-        criminal_occur=analysis_data["criminal_occur"],
         cctv_count=analysis_data["cctv_count"],
-        lamp_count=analysis_data["lamp_count"],
-        police_dist=analysis_data["police_dist"],
-        altitude=analysis_data["altitude"],
-        flood_hist=analysis_data["flood_hist"],
-        low_ratio=analysis_data["low_ratio"],
+        cctv_growth=analysis_data["cctv_growth"],
+        crime_count=analysis_data["crime_count"],
+        safepath_score=analysis_data["safepath_score"],
+        police_count=analysis_data["police_count"],
+        police_pop_ratio=analysis_data["police_pop_ratio"],
+        light_blind_ratio=analysis_data["light_blind_ratio"],
+        safety_map=analysis_data.get("safety_map"),
+        impervious_ratio=analysis_data["impervious_ratio"],
         pump_cap=analysis_data["pump_cap"],
-        river_dist=analysis_data["river_dist"],
+        flood_map=analysis_data.get("flood_map"),
+        noise_pub_density=analysis_data["noise_pub_density"],
+        noise_complaint=analysis_data["noise_complaint"],
+        noise_db=analysis_data["noise_db"],
         road_noise=analysis_data["road_noise"],
-        noise_report=analysis_data["noise_report"],
-        ent_place=analysis_data["ent_place"],
-        train_noise=analysis_data["train_noise"],
-        medic_dist=analysis_data["medic_dist"],
-        nightopen_count=analysis_data["nightopen_count"],
-        emeropen_count=analysis_data["emeropen_count"],
-        emer_cap=analysis_data["emer_cap"],
-        doctor_ratio=analysis_data["doctor_ratio"],
+        aircraft_noise=analysis_data["aircraft_noise"],
+        rail_noise=analysis_data["rail_noise"],
+        noise_hourly=analysis_data["noise_hourly"],
+        noise_table=analysis_data.get("noise_table"),
+        night_clinic=analysis_data["night_clinic"],
+        pharmacy_count=analysis_data["pharmacy_count"],
+        medical_staff=analysis_data["medical_staff"],
+        medic_map=analysis_data.get("medic_map"),
         congestion_data=analysis_data["congestion_data"],
     )
     scores = _category_scores(report)

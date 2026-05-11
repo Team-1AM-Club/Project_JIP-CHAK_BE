@@ -1,7 +1,7 @@
-# 불완전: 소음 상세 응답은 전처리 지표 기준으로 맞췄지만 히트맵/시간대 평균은 noise_table JSON에 임시 의존함.
+from app.core.meta_stats import get_stat
 from app.models.report import Report
 from app.services.analysis.detail import data_source, indicator
-from app.services.analysis.scorer import clamp_score, summary_for_score, weighted_sum
+from app.services.analysis.scorer import normalize, summary_for_score, weighted_sum
 
 
 def calculate_noise_score(report: Report) -> int:
@@ -26,51 +26,79 @@ def get_noise_detail(report: Report) -> dict:
                 {"type": "ROAD", "name": "도로 소음", "source": "master_noise_road.csv"},
                 {"type": "RAIL", "name": "철도 소음", "source": "master_noise_rail.csv"},
                 {"type": "AIRCRAFT", "name": "항공 소음", "source": "master_noise_aircraft.csv"},
-                {"type": "NOISE_PUB", "name": "생활 소음원", "source": "master_noise_pub.csv"},
+                {"type": "NOISE_PUB", "name": "생활 소음원", "source": "master_noise_pub_converted.csv"},
             ],
         },
-        "data_source": data_source("도로·철도·항공·생활 소음원, 소음 민원, 시간대별 소음 추정 전처리 데이터 기반"),
+        "data_source": data_source("도로/철도/항공/생활 소음원, 소음 민원, 시간대별 소음 추정 전처리 데이터 기반"),
     }
 
 
 def _indicator_scores(report: Report) -> list[dict]:
-    source_noise_score = clamp_score(100 - max(report.road_noise - 45, 0) * 2)
-    heatmap_noise = _noise_table_value(report, "heatmap_noise", report.road_noise)
-    heatmap_score = clamp_score(100 - max(heatmap_noise - 45, 0) * 2)
-    hourly_noise = _noise_table_value(report, "hourly_average_noise", report.road_noise)
-    hourly_score = clamp_score(100 - max(hourly_noise - 45, 0) * 2)
-
     return [
         indicator(
-            key="source_noise_level",
-            name="소음원별 소음도",
+            key="noise_pub_density",
+            name="생활 소음원(유흥업소 등)",
+            raw_value=report.noise_pub_density,
+            unit="점",
+            score=_score("noise_pub_density", report.noise_pub_density, inverse=True),
+            weight=0.15,
+        ),
+        indicator(
+            key="noise_complaint",
+            name="소음 민원",
+            raw_value=report.noise_complaint,
+            unit="건",
+            score=_score("noise_complaint", report.noise_complaint, inverse=True),
+            weight=0.15,
+        ),
+        indicator(
+            key="noise_db",
+            name="측정망 소음도",
+            raw_value=report.noise_db,
+            unit="dB",
+            score=_score("noise_db", report.noise_db, inverse=True),
+            weight=0.20,
+        ),
+        indicator(
+            key="road_noise",
+            name="도로 소음",
             raw_value=report.road_noise,
-            unit="dB",
-            score=source_noise_score,
-            weight=0.40,
+            unit="점",
+            score=_score("noise_road", report.road_noise, inverse=True),
+            weight=0.15,
         ),
         indicator(
-            key="noise_heatmap_level",
-            name="주변 소음 히트맵",
-            raw_value=heatmap_noise,
+            key="aircraft_noise",
+            name="항공기 소음",
+            raw_value=report.aircraft_noise,
             unit="dB",
-            score=heatmap_score,
-            weight=0.30,
+            score=_score("noise_aircraft", report.aircraft_noise, inverse=True),
+            weight=0.10,
         ),
         indicator(
-            key="hourly_average_noise",
-            name="시간대별 평균 소음",
-            raw_value=hourly_noise,
+            key="rail_noise",
+            name="철도 소음",
+            raw_value=report.rail_noise,
+            unit="점",
+            score=_score("noise_rail", report.rail_noise, inverse=True),
+            weight=0.10,
+        ),
+        indicator(
+            key="noise_hourly",
+            name="시간대별 추정 소음",
+            raw_value=report.noise_hourly,
             unit="dB",
-            score=hourly_score,
-            weight=0.30,
+            score=_score("noise_hourly", report.noise_hourly, inverse=True),
+            weight=0.15,
         ),
     ]
 
 
-def _noise_table_value(report: Report, key: str, default: float | int) -> float:
-    data = report.noise_table or {}
-    return float(data.get(key, default))
+def _score(key: str, value: float | int | None, *, inverse: bool = False) -> int | None:
+    stat = get_stat(key)
+    if not stat or value is None:
+        return None
+    return normalize(value, stat["p05"], stat["p95"], inverse=inverse)
 
 
 def _chart_data(report: Report) -> dict:

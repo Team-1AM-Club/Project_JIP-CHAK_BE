@@ -18,33 +18,34 @@ class Report(Base):
     lng = Column(Float, nullable=False)
 
     # 치안 (security)
-    criminal_occur = Column(ARRAY(Integer), nullable=False, server_default='{}')
-    cctv_count = Column(Integer, nullable=False, default=0)
-    lamp_count = Column(Integer, nullable=False, default=0)
-    police_dist = Column(Float, nullable=False, default=0.0)
+    cctv_count = Column(Float, nullable=False, default=0.0)
+    cctv_growth = Column(Float, nullable=False, default=0.0)
+    crime_count = Column(Float, nullable=False, default=0.0)
+    safepath_score = Column(Float, nullable=False, default=0.0)
+    police_count = Column(Float, nullable=False, default=0.0)
+    police_pop_ratio = Column(Float, nullable=False, default=0.0)
+    light_blind_ratio = Column(Float, nullable=False, default=0.0)
     safety_map = Column(JSONB, nullable=True)
 
     # 침수 (flood)
-    altitude = Column(Float, nullable=False, default=0.0)
-    flood_hist = Column(Integer, nullable=False, default=0)
-    low_ratio = Column(SmallInteger, nullable=False, default=0)
-    pump_cap = Column(SmallInteger, nullable=False, default=0)
-    river_dist = Column(Integer, nullable=False, default=0)
+    impervious_ratio = Column(Float, nullable=False, default=0.0)
+    pump_cap = Column(Float, nullable=False, default=0.0)
     flood_map = Column(JSONB, nullable=True)
 
     # 소음 (noise)
-    road_noise = Column(SmallInteger, nullable=False, default=0)
-    noise_report = Column(Integer, nullable=False, default=0)
-    ent_place = Column(Integer, nullable=False, default=0)
-    train_noise = Column(Integer, nullable=False, default=0)
+    noise_pub_density = Column(Float, nullable=False, default=0.0)
+    noise_complaint = Column(Float, nullable=False, default=0.0)
+    noise_db = Column(Float, nullable=False, default=0.0)
+    road_noise = Column(Float, nullable=False, default=0.0)
+    aircraft_noise = Column(Float, nullable=False, default=0.0)
+    rail_noise = Column(Float, nullable=False, default=0.0)
+    noise_hourly = Column(Float, nullable=False, default=0.0)
     noise_table = Column(JSONB, nullable=True)
 
     # 의료 (medical)
-    medic_dist = Column(Integer, nullable=False, default=0)
-    nightopen_count = Column(Integer, nullable=False, default=0)
-    emeropen_count = Column(Integer, nullable=False, default=0)
-    emer_cap = Column(Integer, nullable=False, default=0)
-    doctor_ratio = Column(Float, nullable=False, default=0.0)
+    night_clinic = Column(Float, nullable=False, default=0.0)
+    pharmacy_count = Column(Float, nullable=False, default=0.0)
+    medical_staff = Column(Float, nullable=False, default=0.0)
     medic_map = Column(JSONB, nullable=True)
 
     # 혼잡도 (congestion)
@@ -75,6 +76,6 @@ class Report(Base):
             name="reports_score_range_check"
         ),
         Index("idx_reports_user_id", "user_id"),
-        Index("idx_reports_user_created_at", "user_id", "created_at"),  # Using string for created_at in index to avoid referencing column property inside table_args
+        Index("idx_reports_user_created_at", "user_id", "created_at"),
         Index("idx_reports_region_code", "region_code"),
     )
