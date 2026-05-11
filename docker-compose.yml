@@ -1,1 +1,73 @@
-# 배포 환경용
+services:
+  app:
+    image: ${IMAGE_NAME:-ghcr.io/team-1am-club/project_jip-chak:latest}
+    container_name: jipchak_app
+    restart: always
+    env_file: .env
+    environment:
+      # 프로덕션에서는 DB와 Redis를 컨테이너 이름으로 참조합니다
+      - DATABASE_URL=postgresql+asyncpg://postgres:${DB_PASSWORD:-postgres}@db:5432/jipchak
+      - REDIS_URL=redis://redis:6379/0
+      - DATA_PROVIDER=db
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - jipchak_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: jipchak_nginx
+    restart: always
+    ports:
+      - "80:80"
+      # - "443:443"  # HTTPS(Certbot) 적용 시 주석 해제
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - jipchak_net
+
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: jipchak_db
+    restart: always
+    environment:
+      POSTGRES_DB: jipchak
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432" # 외부 접근이 필요 없다면 보안상 제거해도 됩니다
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d jipchak" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jipchak_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: jipchak_redis
+    restart: always
+    ports:
+      - "6379:6379" # 외부 접근이 필요 없다면 보안상 제거해도 됩니다
+    volumes:
+      - redisdata:/data
+    networks:
+      - jipchak_net
+
+networks:
+  jipchak_net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+.idea
+.agent
+.env
+.env.*
+__pycache__
+*.pyc
+venv
+tests/
+scripts/

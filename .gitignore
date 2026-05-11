@@ -27,6 +27,9 @@ env/
 secrets.json
 *.pem
 *.key
+data/*
+data/
+data
 
 # Local app/tool state
 .agent/
