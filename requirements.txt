@@ -8,3 +8,8 @@ alembic
 python-jose[cryptography]
 httpx
 redis
+geoalchemy2
+shapely
+pandas
+pytest
+pytest-asyncio
