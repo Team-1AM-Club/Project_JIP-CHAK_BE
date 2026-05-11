@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/jipchak"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:55432/jipchak"
     REDIS_URL: str = "redis://localhost:6379/0"
 
     JWT_SECRET: str = "change-me"
@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     GEOCODING_PROVIDER: str = "mock"
     NAVER_MAPS_CLIENT_ID: str | None = None
     NAVER_MAPS_CLIENT_SECRET: str | None = None
+
+    DATA_PROVIDER: str = "mock"
+    DATA_DIR: str = "data"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

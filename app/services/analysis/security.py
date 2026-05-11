@@ -1,7 +1,7 @@
-# 불완전: 치안 상세 응답은 전처리 지표 기준으로 맞췄지만 검거율은 현재 DB 컬럼이 없어 중립값으로 임시 처리함.
+from app.core.meta_stats import get_stat
 from app.models.report import Report
 from app.services.analysis.detail import data_source, indicator
-from app.services.analysis.scorer import clamp_score, summary_for_score, weighted_sum
+from app.services.analysis.scorer import clamp_score, normalize, summary_for_score, weighted_sum
 
 
 def calculate_security_score(report: Report) -> int:
@@ -23,12 +23,8 @@ def get_security_detail(report: Report) -> dict:
             "center": {"lat": report.lat, "lng": report.lng},
             "layers": [
                 {"type": "CCTV", "name": "주변 CCTV", "source": "master_security_cctv.csv"},
-                {
-                    "type": "STREET_LIGHT",
-                    "name": "가로등·보안등",
-                    "source": "master_security_light_blind.csv",
-                },
-                {"type": "POLICE", "name": "파출소·지구대", "source": "master_security_police.csv"},
+                {"type": "STREET_LIGHT", "name": "가로등/보안등", "source": "master_security_light_blind.csv"},
+                {"type": "POLICE", "name": "가까운 파출소", "source": "master_security_police.csv"},
                 {"type": "SAFE_PATH", "name": "안심귀갓길", "source": "master_security_safepath.csv"},
             ],
             "data": report.safety_map,
@@ -38,61 +34,66 @@ def get_security_detail(report: Report) -> dict:
 
 
 def _indicator_scores(report: Report) -> list[dict]:
-    crime_count = sum(report.criminal_occur or [])
-    crime_score = clamp_score(100 - crime_count / 2)
-    arrest_rate_score = 70
-    cctv_score = clamp_score(report.cctv_count * 5)
-    light_score = clamp_score(report.lamp_count * 2)
-    safepath_score = 70
-    police_score = clamp_score(100 - report.police_dist / 30)
-
     return [
         indicator(
-            key="crime_count_12m",
-            name="최근 12개월 5대 범죄 발생수",
-            raw_value=crime_count,
+            key="crime_count",
+            name="범죄 발생",
+            raw_value=report.crime_count,
             unit="건",
-            score=crime_score,
-            weight=0.30,
-        ),
-        indicator(
-            key="arrest_rate",
-            name="검거율",
-            raw_value=None,
-            unit="%",
-            score=arrest_rate_score,
-            weight=0.15,
+            score=_score("security_crime", report.crime_count, inverse=True),
+            weight=0.25,
         ),
         indicator(
             key="cctv_density",
-            name="CCTV 밀도",
+            name="CCTV 수",
             raw_value=report.cctv_count,
-            unit="점",
-            score=cctv_score,
-            weight=0.20,
-        ),
-        indicator(
-            key="light_density",
-            name="가로등·보안등 밀도",
-            raw_value=report.lamp_count,
-            unit="점",
-            score=light_score,
+            unit="개",
+            score=_score("security_cctv", report.cctv_count),
             weight=0.15,
         ),
         indicator(
-            key="safepath_access",
-            name="안심귀갓길 접근성",
-            raw_value=None,
-            unit="m",
-            score=safepath_score,
+            key="cctv_growth",
+            name="CCTV 증가율",
+            raw_value=report.cctv_growth,
+            unit="%",
+            score=_score("security_cctv_growth", report.cctv_growth),
             weight=0.10,
         ),
         indicator(
-            key="police_distance",
-            name="가까운 파출소 거리",
-            raw_value=report.police_dist,
-            unit="m",
-            score=police_score,
-            weight=0.10,
+            key="light_blind_ratio",
+            name="보안등 사각지대",
+            raw_value=report.light_blind_ratio,
+            unit="점",
+            score=_score("security_light_blind", report.light_blind_ratio, inverse=True),
+            weight=0.15,
+        ),
+        indicator(
+            key="safepath_score",
+            name="안심귀갓길",
+            raw_value=report.safepath_score,
+            unit="점",
+            score=_score("security_safepath", report.safepath_score),
+            weight=0.15,
+        ),
+        indicator(
+            key="police_access",
+            name="경찰 치안",
+            raw_value=report.police_count,
+            unit="개",
+            score=_score("security_police", report.police_count),
+            weight=0.20,
         ),
     ]
+
+
+def _score(
+    key: str,
+    value: float | int | None,
+    *,
+    inverse: bool = False,
+    fallback: int | None = None,
+) -> int | None:
+    stat = get_stat(key)
+    if not stat or value is None:
+        return fallback
+    return normalize(value, stat["p05"], stat["p95"], inverse=inverse)

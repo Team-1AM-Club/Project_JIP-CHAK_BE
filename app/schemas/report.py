@@ -10,3 +10,4 @@ class AnalysisRequest(BaseModel):
     lng: float
     dong_code: str | None = None
     source: str
+    force_refresh: bool = False

@@ -17,13 +17,14 @@ def normalize(value: float | int | None, p05: float, p95: float, *, inverse: boo
     return clamp_score(score)
 
 
-def weighted_sum(items: list[tuple[int, float]]) -> int:
-    if not items:
+def weighted_sum(items: list[tuple[int | None, float]]) -> int:
+    valid_items = [(score, weight) for score, weight in items if score is not None]
+    if not valid_items:
         return 0
-    total_weight = sum(weight for _, weight in items)
+    total_weight = sum(weight for _, weight in valid_items)
     if total_weight <= 0:
         return 0
-    return clamp_score(sum(score * weight for score, weight in items) / total_weight)
+    return clamp_score(sum(score * weight for score, weight in valid_items) / total_weight)
 
 
 def calculate_total_score(category_scores: dict[str, int | None], weights: dict[str, int]) -> int:

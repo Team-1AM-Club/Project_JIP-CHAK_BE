@@ -1,7 +1,7 @@
-# 불완전: 의료 상세 응답은 전처리 지표 기준으로 맞췄지만 공공 응급실/의료인력은 기존 emer/doctor 컬럼에 임시 매핑함.
+from app.core.meta_stats import get_stat
 from app.models.report import Report
 from app.services.analysis.detail import data_source, indicator
-from app.services.analysis.scorer import clamp_score, summary_for_score, weighted_sum
+from app.services.analysis.scorer import clamp_score, normalize, summary_for_score, weighted_sum
 
 
 def calculate_medical_score(report: Report) -> int:
@@ -22,61 +22,47 @@ def get_medical_detail(report: Report) -> dict:
             "type": "map",
             "center": {"lat": report.lat, "lng": report.lng},
             "layers": [
-                {
-                    "type": "NIGHT_CLINIC",
-                    "name": "야간운영 의료시설",
-                    "source": "master_map_night_clinics_point.csv",
-                },
-                {"type": "PHARMACY", "name": "약국", "source": "master_map_pharmacy_point.csv"},
-                {
-                    "type": "PUBLIC_EMERGENCY",
-                    "name": "공공의료기관 응급실",
-                    "source": "preprocessed_public_er",
-                },
+                {"type": "NIGHT_CLINIC", "name": "야간운영 의료시설", "source": "master_map_night_clinics_point.csv"},
+                {"type": "PHARMACY", "name": "약국", "source": "master_map_pharmacy_point_converted.csv"},
+                {"type": "PUBLIC_EMERGENCY", "name": "공공의료기관 응급실", "source": "preprocessed_public_er"},
             ],
             "data": report.medic_map,
         },
-        "data_source": data_source("야간의료시설, 약국, 공공의료기관 응급실, 의료 인력 전처리 데이터 기반"),
+        "data_source": data_source("의료시설 거리, 야간운영 의료시설, 응급 접근성, 의료 인력 전처리 데이터 기반"),
     }
 
 
 def _indicator_scores(report: Report) -> list[dict]:
-    distance_score = clamp_score(100 - report.medic_dist / 30)
-    night_score = clamp_score(report.nightopen_count * 10)
-    er_score = clamp_score(report.emeropen_count * 35 + report.emer_cap)
-    staff_score = clamp_score(report.doctor_ratio * 20)
-
     return [
         indicator(
-            key="nearest_medical_distance",
-            name="가까운 의료시설 거리",
-            raw_value=report.medic_dist,
-            unit="m",
-            score=distance_score,
-            weight=0.30,
-        ),
-        indicator(
             key="night_medical_density",
-            name="야간운영 의료시설 밀도",
-            raw_value=report.nightopen_count,
-            unit="곳",
-            score=night_score,
-            weight=0.25,
+            name="야간운영 병의원 수",
+            raw_value=report.night_clinic,
+            unit="개",
+            score=_score("health_night_clinic", report.night_clinic),
+            weight=0.35,
         ),
         indicator(
-            key="public_er_access",
-            name="공공의료기관 응급실 접근성",
-            raw_value=report.emeropen_count,
-            unit="곳",
-            score=er_score,
-            weight=0.25,
+            key="pharmacy_density",
+            name="주변 약국 수",
+            raw_value=report.pharmacy_count,
+            unit="개",
+            score=_score("health_pharmacy", report.pharmacy_count),
+            weight=0.35,
         ),
         indicator(
             key="public_medical_staff",
-            name="공공의료기관 의료 인력 현황",
-            raw_value=report.doctor_ratio,
-            unit="명/천명",
-            score=staff_score,
-            weight=0.20,
+            name="구별 의료 인력 수",
+            raw_value=report.medical_staff,
+            unit="명",
+            score=_score("health_workforce_gu", report.medical_staff),
+            weight=0.30,
         ),
     ]
+
+
+def _score(key: str, value: float | int | None, *, inverse: bool = False, fallback: int | None = None) -> int | None:
+    stat = get_stat(key)
+    if not stat or value is None:
+        return fallback
+    return normalize(value, stat["p05"], stat["p95"], inverse=inverse)
