@@ -51,11 +51,12 @@ services:
       POSTGRES_DB: jipchak
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-    # ports 제거 - 외부 노출 X, 같은 네트워크의 app만 접근
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d jipchak"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d jipchak" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -72,12 +73,12 @@ services:
     image: redis:7-alpine
     container_name: jipchak_redis
     restart: always
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [ "redis-server", "--appendonly", "yes" ]
     # ports 제거 - 외부 노출 X
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
