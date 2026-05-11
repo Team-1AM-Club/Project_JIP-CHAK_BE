@@ -43,6 +43,16 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Prepare VM Directories
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.GCP_HOST }}
+        username: ${{ secrets.GCP_USER }}
+        key: ${{ secrets.GCP_SSH_KEY }}
+        port: 22
+        script: |
+          mkdir -p "${{ secrets.GCP_APP_DIR }}/nginx"
+
     - name: Copy deployment files to VM
       uses: appleboy/scp-action@v0.1.7
       with:
