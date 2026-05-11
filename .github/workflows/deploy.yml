@@ -51,7 +51,8 @@ jobs:
         key: ${{ secrets.GCP_SSH_KEY }}
         port: 22
         script: |
-          mkdir -p "${{ secrets.GCP_APP_DIR }}/nginx"
+          sudo mkdir -p "${{ secrets.GCP_APP_DIR }}/nginx"
+          sudo chown -R $USER:$USER "${{ secrets.GCP_APP_DIR }}"
 
     - name: Copy deployment files to VM
       uses: appleboy/scp-action@v0.1.7
