@@ -21,6 +21,16 @@ def create_app() -> FastAPI:
     app.add_exception_handler(AppException, app_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
+    # CORS 미들웨어 추가 (프론트엔드 연동을 위해 필수)
+    from fastapi.middleware.cors import CORSMiddleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # 실제 배포 시 프론트엔드 도메인으로 제한 필요 (예: ["https://jipchak.com"])
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(users.router, prefix="/api/v1")
     app.include_router(addresses.router, prefix="/api/v1")
