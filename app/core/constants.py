@@ -44,7 +44,7 @@ REPORT_CATEGORIES = {
     "security": {"title": "치안 리스크", "icon": "moon"},
     "medical": {"title": "의료 접근성", "icon": "medical"},
     "noise": {"title": "소음 리스크", "icon": "sound"},
-    "congestion": {"title": "혼잡 리스크", "icon": "people"},
+    "congestion": {"title": "생활 혼잡도", "icon": "people"},
 }
 
 
