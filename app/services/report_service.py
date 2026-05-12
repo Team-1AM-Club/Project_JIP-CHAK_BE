@@ -37,20 +37,8 @@ async def request_analysis(
     report_region_code = region_code or "UNKNOWN"
     cached_report = None
     if not payload.get("force_refresh", False):
-<<<<<<< HEAD
         cached_report = await _find_cached_report(db, user.user_id, report_region_code)
-=======
-        cached_report = await db.scalar(
-            select(Report)
-            .where(
-                Report.user_id == user.user_id,
-                Report.region_code == report_region_code,
-                Report.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
-            )
-            .order_by(desc(Report.created_at))
-            .limit(1)
-        )
->>>>>>> 1f716b72d963169b75d0c07d7af4d87efd973d98
+
     if cached_report is not None:
         category_scores = _category_scores(cached_report)
         weighted_total_score = calculate_total_score(category_scores, weights_from_user(user))
