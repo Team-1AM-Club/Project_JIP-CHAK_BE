@@ -53,3 +53,11 @@ async def update_weights(
     current_user: User = Depends(get_current_user),
 ):
     return success_response(await user_service.update_weights(db, current_user, request.model_dump()))
+
+
+@router.delete("/me")
+async def withdraw(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return success_response(await user_service.withdraw(db, current_user))
