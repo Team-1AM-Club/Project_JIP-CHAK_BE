@@ -23,9 +23,22 @@ async def social_login(db: AsyncSession, provider: str, code: str, redirect_uri:
     )
     is_new_user = user is None
     if user is None:
+        email = user_info.email
+        if not email:
+            email = f"{user_info.provider_id}@{provider.lower()}.dummy.com"
+
+        # 이메일 중복 체크 (다른 소셜로 이미 가입된 경우)
+        existing_user = await db.scalar(select(User).where(User.email == email))
+        if existing_user:
+            raise AppException(
+                400,
+                "EMAIL_ALREADY_EXISTS",
+                f"해당 이메일은 이미 {existing_user.provider} 계정으로 가입되어 있습니다. 기존 소셜 계정으로 로그인해 주세요."
+            )
+
         user = User(
             user_name=user_info.name,
-            email=user_info.email,
+            email=email,
             provider=provider.upper(),
             provider_id=user_info.provider_id,
         )
