@@ -2,7 +2,7 @@
     "stats": {
         "noise_pub_density": {
             "p05": 8.4,
-            "p95": 186.59999999999997
+            "p95": 80.0
         },
         "noise_complaint": {
             "p05": 1079.6,
