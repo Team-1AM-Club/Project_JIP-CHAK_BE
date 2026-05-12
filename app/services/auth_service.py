@@ -33,7 +33,7 @@ async def social_login(db: AsyncSession, provider: str, code: str, redirect_uri:
             raise AppException(
                 400,
                 "EMAIL_ALREADY_EXISTS",
-                f"해당 이메일은 이미 {existing_user.provider} 계정으로 가입되어 있습니다."
+                f"해당 이메일은 이미 {existing_user.provider} 로 가입되어 있습니다."
             )
 
         user = User(
