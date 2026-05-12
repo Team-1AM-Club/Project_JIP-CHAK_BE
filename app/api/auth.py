@@ -14,7 +14,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login")
 async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
-    data = await auth_service.social_login(db, request.provider, request.code, request.redirect_uri)
+    data = await auth_service.social_login(
+        db, request.provider, request.code, request.redirect_uri, request.state
+    )
     return success_response(data)
 
 

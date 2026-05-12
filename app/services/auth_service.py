@@ -14,9 +14,9 @@ from app.models.user import User
 from app.services.user_service import is_customized
 
 
-async def social_login(db: AsyncSession, provider: str, code: str, redirect_uri: str) -> dict:
+async def social_login(db: AsyncSession, provider: str, code: str, redirect_uri: str, state: str | None = None) -> dict:
     provider = provider.lower()
-    user_info = await get_oauth_user_info(provider, code, redirect_uri)
+    user_info = await get_oauth_user_info(provider, code, redirect_uri, state)
 
     user = await db.scalar(
         select(User).where(User.provider == provider.upper(), User.provider_id == user_info.provider_id)
