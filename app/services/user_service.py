@@ -1,5 +1,5 @@
 # 불완전: 사용자 비즈니스 로직은 구현됐지만 실제 DB commit/constraint와 통합 테스트가 필요함.
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -116,7 +116,8 @@ def _user_type_options(selected_user_type: str) -> list[dict]:
 
 async def withdraw(db: AsyncSession, user: User) -> dict:
     user_name = user.user_name
-    withdrawn_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    kst = timezone(timedelta(hours=9))
+    withdrawn_at = datetime.now(kst).strftime('%Y-%m-%d %H:%M:%S')
     
     await db.delete(user)
     await db.commit()
