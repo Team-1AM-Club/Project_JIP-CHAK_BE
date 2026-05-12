@@ -5,6 +5,7 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+import geoalchemy2  # noqa: F401
 
 # Pydantic Settings 및 DB Base 임포트
 from app.core.config import settings
