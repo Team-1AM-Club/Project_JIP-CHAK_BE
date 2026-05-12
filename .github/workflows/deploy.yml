@@ -101,6 +101,8 @@ jobs:
           echo "NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}" >> $ENV_PATH
           echo "NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}" >> $ENV_PATH
           echo "UPSTAGE_AI_API_KEY=${{ secrets.UPSTAGE_AI_API_KEY }}" >> $ENV_PATH
+          echo "DATA_PROVIDER=${{ secrets.DATA_PROVIDER }}" >> $ENV_PATH
+          echo "DATA_DIR=${{ secrets.DATA_DIR }}" >> $ENV_PATH
           chmod 600 $ENV_PATH
           
           # 2. 서버에서 GHCR 로그인

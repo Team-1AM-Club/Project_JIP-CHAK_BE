@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     NAVER_MAPS_CLIENT_SECRET: str | None = None
 
     DATA_PROVIDER: str = "mock"
-    DATA_DIR: str = "data"
+    DATA_DIR: str = "preprocessing"
 
     UPSTAGE_AI_API_KEY: str | None = None
 
