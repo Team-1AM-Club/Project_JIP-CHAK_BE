@@ -11,6 +11,7 @@ class LoginRequest(BaseModel):
     provider: OAuthProvider
     code: str
     redirect_uri: str
+    state: str | None = None
 
 
 class ReissueRequest(BaseModel):
