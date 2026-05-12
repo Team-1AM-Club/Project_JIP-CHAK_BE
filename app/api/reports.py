@@ -8,7 +8,7 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.common import success_response
-from app.schemas.report import AnalysisRequest
+from app.schemas.report import AnalysisRequest, CompareRequest
 from app.services import compare_service, report_service
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -31,14 +31,24 @@ async def get_status(task_id: UUID):
     return success_response(await report_service.get_status(task_id))
 
 
-@router.get("/compare")
+@router.post("/compare")
 async def compare(
-    report_ids: str,
+    request: CompareRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    parsed_ids = compare_service.parse_report_ids(report_ids)
-    return success_response(await compare_service.compare_reports(db, current_user, parsed_ids))
+    result = await compare_service.start_comparison(
+        db, current_user,
+        [addr.model_dump() for addr in request.addresses],
+        background_tasks,
+    )
+    return success_response(result)
+
+
+@router.get("/compare/status/{task_id}")
+async def compare_status(task_id: UUID):
+    return success_response(await compare_service.get_comparison_status(task_id))
 
 
 @router.get("/{reportId}/analysis")

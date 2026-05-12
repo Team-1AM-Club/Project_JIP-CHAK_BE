@@ -37,15 +37,7 @@ async def request_analysis(
     report_region_code = region_code or "UNKNOWN"
     cached_report = None
     if not payload.get("force_refresh", False):
-        cached_report = await db.scalar(
-            select(Report)
-            .where(
-                Report.region_code == report_region_code,
-                Report.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
-            )
-            .order_by(desc(Report.created_at))
-            .limit(1)
-        )
+        cached_report = await _find_cached_report(db, user.user_id, report_region_code)
     if cached_report is not None:
         category_scores = _category_scores(cached_report)
         weighted_total_score = calculate_total_score(category_scores, weights_from_user(user))
@@ -82,6 +74,23 @@ async def request_analysis(
         "estimated_seconds": 15,
         "cached": False,
     }
+
+
+async def analyze_single_address(db: AsyncSession, user: User, payload: dict) -> Report:
+    """단건 주소 분석 → Report 반환. 본인 캐시 히트 시 기존 Report 반환."""
+    region_code = payload.get("dong_code") or "UNKNOWN"
+
+    cached = await _find_cached_report(db, user.user_id, region_code)
+    if cached is not None:
+        return cached
+
+    analysis_data = await public_data_client.fetch_analysis_data(
+        payload["lat"], payload["lng"], region_code,
+    )
+    report = _create_report_from_analysis_data(user, payload, region_code, analysis_data)
+    db.add(report)
+    await db.flush()
+    return report
 
 
 async def run_mock_analysis(task_id: UUID, user_id: UUID, payload: dict, region_code: str) -> None:
@@ -244,6 +253,10 @@ def category_scores(report: Report) -> dict[str, int]:
     return _category_scores(report)
 
 
+async def find_cached_report(db: AsyncSession, user_id: UUID, region_code: str) -> Report | None:
+    return await _find_cached_report(db, user_id, region_code)
+
+
 def _category_scores(report: Report) -> dict[str, int]:
     return {
         "flood": flood.calculate_flood_score(report),
@@ -302,6 +315,19 @@ def _create_report_from_analysis_data(user: User, payload: dict, region_code: st
     report.congestion_score = scores["congestion"]
     report.total_score = _base_total_score(scores)
     return report
+
+
+async def _find_cached_report(db: AsyncSession, user_id: UUID, region_code: str) -> Report | None:
+    return await db.scalar(
+        select(Report)
+        .where(
+            Report.user_id == user_id,
+            Report.region_code == region_code,
+            Report.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
+        )
+        .order_by(desc(Report.created_at))
+        .limit(1)
+    )
 
 
 def _base_total_score(scores: dict[str, int]) -> int:
