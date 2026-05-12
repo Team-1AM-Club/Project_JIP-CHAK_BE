@@ -84,6 +84,9 @@ jobs:
           echo "IMAGE_NAME=$IMAGE_NAME" > $ENV_PATH
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $ENV_PATH
           echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> $ENV_PATH
+          echo "DB_USER=${{ secrets.DB_USER }}" >> $ENV_PATH
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $ENV_PATH
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> $ENV_PATH
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> $ENV_PATH
           echo "JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}" >> $ENV_PATH
           echo "ACCESS_TOKEN_EXPIRE=${{ secrets.ACCESS_TOKEN_EXPIRE }}" >> $ENV_PATH
