@@ -13,3 +13,4 @@ shapely
 pandas
 pytest
 pytest-asyncio
+openai

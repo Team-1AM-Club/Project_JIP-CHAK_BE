@@ -1,5 +1,6 @@
 # 불완전: 리포트 조회/점수 응답은 구현됐지만 분석 원천 데이터는 실제 공공데이터 대신 mock interface를 사용함.
 import logging
+import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -12,6 +13,7 @@ from app.core.exceptions import AppException, ForbiddenReportError, ReportNotFou
 from app.core.task_status import get_task_status, set_task_status
 from app.db.session import AsyncSessionLocal
 from app.external.public_data import public_data_client
+from app.external.ai_report import generate_overall_summary, generate_category_summary
 from app.models.bookmark import Bookmark
 from app.models.report import Report
 from app.models.user import User
@@ -157,25 +159,49 @@ async def analysis_response(db: AsyncSession, user: User, report_id: UUID) -> di
     category_scores = _category_scores(report)
     total_score = calculate_total_score(category_scores, weights_from_user(user))
     saved = await _is_saved(db, user, report.report_id)
+
+    # 카테고리별 기본 데이터 구성
+    categories_data = []
+    for category, meta in REPORT_CATEGORIES.items():
+        score = category_scores[category]
+        categories_data.append({
+            "type": category,
+            "title": meta["title"],
+            "score": score,
+            "grade": grade_from_score(score),
+            "summary": summary_for_score(score),  # Fallback 기본값
+        })
+
+    # AI 요약 병렬 생성 (종합 1 + 카테고리 5 = 6건)
+    overall_task = generate_overall_summary(
+        report.address, total_score, grade_from_score(total_score), categories_data,
+    )
+    category_tasks = [
+        generate_category_summary(
+            report.address, cat["title"], cat["score"], cat["grade"], [],
+        )
+        for cat in categories_data
+    ]
+    ai_results = await asyncio.gather(overall_task, *category_tasks, return_exceptions=True)
+
+    # AI 결과 적용 (실패 시 기존 Fallback 유지)
+    overall_ai = ai_results[0] if not isinstance(ai_results[0], Exception) else None
+    overall_summary = overall_ai or summary_for_score(total_score)
+
+    for i, cat in enumerate(categories_data):
+        ai_cat = ai_results[i + 1] if not isinstance(ai_results[i + 1], Exception) else None
+        if ai_cat:
+            cat["summary"] = ai_cat
+
     return {
         "report_id": report.report_id,
         "address": report.address,
         "dong_code": report.region_code,
         "total_score": total_score,
         "grade": grade_from_score(total_score),
-        "summary": summary_for_score(total_score),
+        "summary": overall_summary,
         "score_source": {"base_score_cached": True, "weight_applied": True},
-        "categories": [
-            {
-                "type": category,
-                "title": meta["title"],
-                "score": score,
-                "grade": grade_from_score(score),
-                "summary": summary_for_score(score),
-            }
-            for category, meta in REPORT_CATEGORIES.items()
-            for score in [category_scores[category]]
-        ],
+        "categories": categories_data,
         "saved": saved,
     }
 
@@ -192,6 +218,12 @@ async def detail_response(db: AsyncSession, user: User, report_id: UUID, categor
     data = handlers[category](report)
     meta = REPORT_CATEGORIES[category]
     score = data["score"]
+
+    # AI 카테고리 요약 생성 (indicators 정보를 함께 전달)
+    ai_summary = await generate_category_summary(
+        report.address, meta["title"], score, grade_from_score(score), data["indicators"],
+    )
+
     return {
         "report_id": report.report_id,
         "address": report.address,
@@ -201,7 +233,7 @@ async def detail_response(db: AsyncSession, user: User, report_id: UUID, categor
         "score": score,
         "base_score": data.get("base_score", score),
         "grade": grade_from_score(score),
-        "summary": data["summary"],
+        "summary": ai_summary or data["summary"],  # AI 실패 시 기존 Fallback
         "indicators": data["indicators"],
         "visualization": data.get("visualization"),
         "data_source": data["data_source"],
