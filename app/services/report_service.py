@@ -40,6 +40,7 @@ async def request_analysis(
         cached_report = await db.scalar(
             select(Report)
             .where(
+                Report.user_id == user.user_id,
                 Report.region_code == report_region_code,
                 Report.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
             )
