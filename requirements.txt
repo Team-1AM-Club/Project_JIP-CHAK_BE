@@ -1,4 +1,4 @@
-# 완벽: 현재 구현 코드 import와 OpenAPI 생성에 필요한 Python 의존성을 포함함.
+# Python dependencies
 fastapi
 uvicorn[standard]
 sqlalchemy[asyncio]

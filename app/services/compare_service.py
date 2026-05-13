@@ -61,7 +61,11 @@ async def run_comparison_analysis(task_id: UUID, user_id: UUID, addresses: list[
 
             reports = []
             for i, addr in enumerate(addresses):
-                report = await report_service.analyze_single_address(db, user, addr)
+                report = await report_service.analyze_single_address(
+                    db,
+                    user,
+                    {**addr, "use_cache": False},
+                )
                 reports.append(report)
                 await set_task_status(
                     task_id,
@@ -114,15 +118,22 @@ async def _try_all_cached(
     reports = []
     for addr in addresses:
         region_code = addr.get("dong_code") or "UNKNOWN"
+        if region_code == "UNKNOWN":
+            return None
         cached = await report_service.find_cached_report(db, user.user_id, region_code)
         if cached is None:
             return None
         reports.append(cached)
+    if len({report.report_id for report in reports}) != len(reports):
+        return None
     return reports
 
 
 async def _build_comparison(db: AsyncSession, user: User, reports: list[Report]) -> dict:
     """리포트 2개로 비교 결과 dict 생성."""
+    if len({report.report_id for report in reports}) != len(reports):
+        raise AppException(400, "DUPLICATE_COMPARISON_REPORT", "서로 다른 주소의 리포트만 비교할 수 있습니다.")
+
     weights = weights_from_user(user)
     report_scores = {report.report_id: report_service.category_scores(report) for report in reports}
     totals = {
@@ -179,7 +190,14 @@ async def _recommendation(
     reports: list[Report], totals: dict, report_scores: dict
 ) -> dict:
     best_report = max(reports, key=lambda report: totals[report.report_id])
-    other_report = next(r for r in reports if r.report_id != best_report.report_id)
+    other_report = next((r for r in reports if r.report_id != best_report.report_id), None)
+    if other_report is None:
+        return {
+            "title": "사용자 가중치 기준 종합 추천",
+            "content": f"{best_report.address}가 현재 가중치 기준으로 가장 높은 종합 점수입니다.",
+            "recommended_report_id": best_report.report_id,
+            "basis": "현재 사용자 가중치 기준",
+        }
 
     ai_content = await generate_comparison_recommendation(
         address_a=best_report.address,

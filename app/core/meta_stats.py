@@ -34,7 +34,7 @@ META_STATS: dict[str, dict[str, float]] = {
     **_stat_items(_flood),
     **_stat_items(_noise.get("stats", {})),
     **_stat_items(_health.get("stats", {})),
-    **_stat_items(_congestion),
+    **_stat_items(_congestion.get("stats", {})),
 }
 
 NOISE_HOURLY_WEIGHTS: dict[str, float] = {

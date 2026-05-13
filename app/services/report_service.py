@@ -38,7 +38,6 @@ async def request_analysis(
     cached_report = None
     if not payload.get("force_refresh", False):
         cached_report = await _find_cached_report(db, user.user_id, report_region_code)
-
     if cached_report is not None:
         category_scores = _category_scores(cached_report)
         weighted_total_score = calculate_total_score(category_scores, weights_from_user(user))
@@ -79,9 +78,10 @@ async def request_analysis(
 
 async def analyze_single_address(db: AsyncSession, user: User, payload: dict) -> Report:
     """단건 주소 분석 → Report 반환. 본인 캐시 히트 시 기존 Report 반환."""
-    region_code = payload.get("dong_code") or "UNKNOWN"
+    region_code = payload.get("dong_code") or _fallback_region_code(payload)
+    use_cache = payload.get("use_cache", True)
 
-    cached = await _find_cached_report(db, user.user_id, region_code)
+    cached = await _find_cached_report(db, user.user_id, region_code) if use_cache and region_code != "UNKNOWN" else None
     if cached is not None:
         return cached
 
@@ -343,3 +343,11 @@ def _is_seoul_location(dong_code: str | None, *addresses: str | None) -> bool:
 
 def _dong_name(address: str) -> str:
     return next((part for part in address.split() if part.endswith("동")), "")
+
+
+def _fallback_region_code(payload: dict) -> str:
+    lat = payload.get("lat")
+    lng = payload.get("lng")
+    if lat is None or lng is None:
+        return "UNKNOWN"
+    return f"COORD:{float(lat):.6f}:{float(lng):.6f}"
