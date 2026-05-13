@@ -33,9 +33,9 @@ async def seed_medical(session, data_dir: Path, *, replace: bool = False) -> dic
             "name": str_or_none(row.get("명") or row.get("사업장명")),
             "gu_name": str_or_none(row["자치구명"]),
             "dong_name": str_or_none(row.get("동") or row.get("행정동명")),
-            "lat": float(row["위도"]),
-            "lon": float(row["경도"]),
-            "geom": make_point(row["경도"], row["위도"]),
+            "lat": float(row["병원위도"]),
+            "lon": float(row["병원경도"]),
+            "geom": make_point(row["병원경도"], row["병원위도"]),
             "raw_score": float_or_none(row["raw_score_pharmacy_point"]),
         }
         for _, row in df.iterrows()
