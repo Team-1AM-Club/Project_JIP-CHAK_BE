@@ -36,7 +36,7 @@ async def request_analysis(
 
     report_region_code = region_code or "UNKNOWN"
     cached_report = None
-    if not payload.get("force_refresh", False):
+    if not payload.get("force_refresh", False) and report_region_code != "UNKNOWN":
         cached_report = await _find_cached_report(db, user.user_id, report_region_code)
     if cached_report is not None:
         category_scores = _category_scores(cached_report)
@@ -86,7 +86,7 @@ async def analyze_single_address(db: AsyncSession, user: User, payload: dict) ->
         return cached
 
     analysis_data = await public_data_client.fetch_analysis_data(
-        payload["lat"], payload["lng"], region_code,
+        payload["lat"], payload["lng"], region_code, address=payload.get("address"),
     )
     report = _create_report_from_analysis_data(user, payload, region_code, analysis_data)
     db.add(report)
@@ -115,6 +115,7 @@ async def run_mock_analysis(task_id: UUID, user_id: UUID, payload: dict, region_
                 payload["lat"],
                 payload["lng"],
                 region_code,
+                address=payload.get("address"),
             )
             report = _create_report_from_analysis_data(user, payload, region_code, analysis_data)
             db.add(report)

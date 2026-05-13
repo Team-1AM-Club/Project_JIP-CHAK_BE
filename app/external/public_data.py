@@ -39,11 +39,11 @@ GU_CODE_MAP = {
 }
 
 class PublicDataClient(Protocol):
-    async def fetch_analysis_data(self, lat: float, lng: float, dong_code: str) -> dict:
+    async def fetch_analysis_data(self, lat: float, lng: float, dong_code: str, address: str | None = None) -> dict:
         ...
 
 class MockPublicDataClient:
-    async def fetch_analysis_data(self, lat: float, lng: float, dong_code: str) -> dict:
+    async def fetch_analysis_data(self, lat: float, lng: float, dong_code: str, address: str | None = None) -> dict:
         return {
             "cctv_count": 15.0,
             "cctv_growth": 200.0,
@@ -72,8 +72,8 @@ class MockPublicDataClient:
         }
 
 class DbPublicDataClient:
-    async def fetch_analysis_data(self, lat: float, lng: float, dong_code: str) -> dict:
-        gu_name = _extract_gu_name(dong_code)
+    async def fetch_analysis_data(self, lat: float, lng: float, dong_code: str, address: str | None = None) -> dict:
+        gu_name = _extract_gu_name(dong_code, address)
 
         async with AsyncSessionLocal() as db:
             cctv_count = await security_repo.count_nearby_cctv(db, lat, lng)
@@ -151,10 +151,16 @@ class DbPublicDataClient:
             },
         }
 
-def _extract_gu_name(dong_code: str) -> str | None:
-    if not dong_code:
-        return None
-    return GU_CODE_MAP.get(str(dong_code)[:5])
+def _extract_gu_name(dong_code: str, address: str | None = None) -> str | None:
+    if dong_code:
+        gu_name = GU_CODE_MAP.get(str(dong_code)[:5])
+        if gu_name:
+            return gu_name
+    if address:
+        for gu in GU_CODE_MAP.values():
+            if gu in address:
+                return gu
+    return None
 
 def _create_client() -> PublicDataClient:
     if settings.DATA_PROVIDER.lower() == "db":
