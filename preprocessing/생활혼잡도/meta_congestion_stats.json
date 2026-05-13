@@ -1,14 +1,40 @@
 {
-    "subway_congestion": {
-        "p05": 25.32,
-        "p95": 139.8
-    },
-    "bus_congestion": {
-        "p05": 24.614000000000004,
-        "p95": 200.0
-    },
-    "floating_population": {
-        "p05": 169.086435,
-        "p95": 2027.1215800000004
+    "stats": {
+        "subway_congestion": {
+            "p05": 25.32,
+            "p95": 139.8
+        },
+        "bus_congestion": {
+            "p05": 24.61,
+            "p95": 534.18
+        },
+        "floating_population": {
+            "p05": 169.09,
+            "p95": 2027.12
+        },
+        "ui_rendering": {
+            "color_scale": {
+                "안전 (Safe)": {
+                    "min": 80,
+                    "max": 100,
+                    "color": "#4CAF50"
+                },
+                "주의 (Caution)": {
+                    "min": 60,
+                    "max": 79,
+                    "color": "#FFC107"
+                },
+                "위험 (Warning)": {
+                    "min": 40,
+                    "max": 59,
+                    "color": "#FF9800"
+                },
+                "고위험 (High Risk)": {
+                    "min": 0,
+                    "max": 39,
+                    "color": "#F44336"
+                }
+            }
+        }
     }
 }
