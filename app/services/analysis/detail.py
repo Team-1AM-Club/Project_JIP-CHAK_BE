@@ -35,12 +35,17 @@ def indicator(
     score: int | None,
     weight: float,
     display_unit: str | None = None,
+    display_value_override: str | None = None,
 ) -> dict:
     return {
         "key": key,
         "name": name,
         "raw_value": raw_value,
-        "display_value": display_value(raw_value, display_unit if display_unit is not None else unit),
+        "display_value": (
+            display_value_override
+            if display_value_override is not None
+            else display_value(raw_value, display_unit if display_unit is not None else unit)
+        ),
         "unit": unit,
         "score": clamp_score(score) if score is not None else None,
         "weight": weight,

@@ -37,21 +37,30 @@ def get_noise_detail(report: Report) -> dict:
 
 
 def _indicator_scores(report: Report) -> list[dict]:
+    noise_pub_score = _score("noise_pub_density", report.noise_pub_density, inverse=True)
+    noise_complaint_score = _score("noise_complaint", report.noise_complaint, inverse=True)
+    noise_db_score = _score("noise_db", report.noise_db, inverse=True)
+    road_noise_score = _score("noise_road", report.road_noise, inverse=True)
+    aircraft_noise_score = _score("noise_aircraft", report.aircraft_noise, inverse=True)
+    rail_noise_score = _score("noise_rail", report.rail_noise, inverse=True)
+    noise_hourly_score = _score("noise_hourly", report.noise_hourly, inverse=True)
+
     return [
         indicator(
             key="noise_pub_density",
             name="생활 소음원(유흥업소 등)",
             raw_value=report.noise_pub_density,
             unit="점",
-            score=_score("noise_pub_density", report.noise_pub_density, inverse=True),
+            score=noise_pub_score,
             weight=0.15,
+            display_value_override=_score_display(noise_pub_score),
         ),
         indicator(
             key="noise_complaint",
             name="소음 민원",
             raw_value=report.noise_complaint,
             unit="건",
-            score=_score("noise_complaint", report.noise_complaint, inverse=True),
+            score=noise_complaint_score,
             weight=0.15,
         ),
         indicator(
@@ -59,7 +68,7 @@ def _indicator_scores(report: Report) -> list[dict]:
             name="측정망 소음도",
             raw_value=report.noise_db,
             unit="dB",
-            score=_score("noise_db", report.noise_db, inverse=True),
+            score=noise_db_score,
             weight=0.20,
         ),
         indicator(
@@ -67,15 +76,16 @@ def _indicator_scores(report: Report) -> list[dict]:
             name="도로 소음",
             raw_value=report.road_noise,
             unit="점",
-            score=_score("noise_road", report.road_noise, inverse=True),
+            score=road_noise_score,
             weight=0.15,
+            display_value_override=_score_display(road_noise_score),
         ),
         indicator(
             key="aircraft_noise",
             name="항공기 소음",
             raw_value=report.aircraft_noise,
             unit="dB",
-            score=_score("noise_aircraft", report.aircraft_noise, inverse=True),
+            score=aircraft_noise_score,
             weight=0.10,
         ),
         indicator(
@@ -83,15 +93,16 @@ def _indicator_scores(report: Report) -> list[dict]:
             name="철도 소음",
             raw_value=report.rail_noise,
             unit="점",
-            score=_score("noise_rail", report.rail_noise, inverse=True),
+            score=rail_noise_score,
             weight=0.10,
+            display_value_override=_score_display(rail_noise_score),
         ),
         indicator(
             key="noise_hourly",
             name="시간대별 추정 소음",
             raw_value=report.noise_hourly,
             unit="dB",
-            score=_score("noise_hourly", report.noise_hourly, inverse=True),
+            score=noise_hourly_score,
             weight=0.15,
         ),
     ]
@@ -102,6 +113,10 @@ def _score(key: str, value: float | int | None, *, inverse: bool = False) -> int
     if not stat or value is None:
         return None
     return normalize(value, stat["p05"], stat["p95"], inverse=inverse)
+
+
+def _score_display(score: int | None) -> str | None:
+    return f"{score}점" if score is not None else None
 
 
 def _chart_data(report: Report) -> dict:
