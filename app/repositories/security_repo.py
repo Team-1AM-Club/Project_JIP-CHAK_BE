@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.reference.security import (
     RefCctv,
+    RefCctvGrowth,
     RefCrime,
     RefLightBlind,
     RefPolice,
@@ -37,10 +38,24 @@ async def nearest_police_distance(db: AsyncSession, lat: float, lng: float) -> f
     return float(value) if value is not None else None
 
 
+async def get_police_score(db: AsyncSession, gu_name: str | None) -> float | None:
+    if not gu_name:
+        return None
+    stmt = select(func.avg(RefPolice.raw_score)).where(RefPolice.address.contains(gu_name))
+    value = await db.scalar(stmt)
+    return float(value) if value is not None else None
+
+
 async def get_crime_score(db: AsyncSession, gu_name: str | None) -> RefCrime | None:
     if not gu_name:
         return None
     return await db.scalar(select(RefCrime).where(RefCrime.gu_name == gu_name))
+
+
+async def get_cctv_growth_score(db: AsyncSession, gu_name: str | None) -> RefCctvGrowth | None:
+    if not gu_name:
+        return None
+    return await db.scalar(select(RefCctvGrowth).where(RefCctvGrowth.gu_name == gu_name))
 
 
 async def get_police_pop_score(db: AsyncSession, gu_name: str | None) -> RefPolicePopulation | None:

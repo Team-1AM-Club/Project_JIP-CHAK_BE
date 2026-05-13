@@ -22,7 +22,9 @@ def get_flood_detail(report: Report) -> dict:
             "type": "map",
             "center": {"lat": report.lat, "lng": report.lng},
             "layers": [
-                {"type": "FLOOD_TRACE", "name": "주변 침수 흔적 지도", "source": "master_flood_trace.geojson"}
+                {"type": "FLOOD_PUMP", "name": "배수펌프 시설", "source": "master_flood_pump.csv"},
+                {"type": "IMPERVIOUS", "name": "불투수면적률", "source": "master_flood_impervious.csv"},
+                {"type": "FLOOD_TRACE", "name": "주변 침수 흔적 지도", "source": "master_flood_trace.geojson"},
             ],
             "data": report.flood_map,
         },

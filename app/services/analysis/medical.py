@@ -22,13 +22,13 @@ def get_medical_detail(report: Report) -> dict:
             "type": "map",
             "center": {"lat": report.lat, "lng": report.lng},
             "layers": [
-                {"type": "NIGHT_CLINIC", "name": "야간운영 의료시설", "source": "master_map_night_clinics_point.csv"},
+                {"type": "NIGHT_CLINIC", "name": "야간운영 의료시설", "source": "master_map_night_clinics_point_fixed.csv"},
                 {"type": "PHARMACY", "name": "약국", "source": "master_map_pharmacy_point_converted.csv"},
-                {"type": "PUBLIC_EMERGENCY", "name": "공공의료기관 응급실", "source": "preprocessed_public_er"},
+                {"type": "HEALTH_WORKFORCE", "name": "의료 인력", "source": "master_health_workforce_gu.csv"},
             ],
             "data": report.medic_map,
         },
-        "data_source": data_source("의료시설 거리, 야간운영 의료시설, 응급 접근성, 의료 인력 전처리 데이터 기반"),
+        "data_source": data_source("야간운영 의료시설, 약국, 의료 인력 전처리 데이터 기반"),
     }
 
 
