@@ -23,7 +23,7 @@ def get_medical_detail(report: Report) -> dict:
             "center": {"lat": report.lat, "lng": report.lng},
             "layers": [
                 {"type": "NIGHT_CLINIC", "name": "야간운영 의료시설", "source": "master_map_night_clinics_point_fixed.csv"},
-                {"type": "PHARMACY", "name": "약국", "source": "master_map_pharmacy_point_converted.csv"},
+                {"type": "PHARMACY", "name": "약국", "source": "master_security_pharmacy_individual_latlon.csv"},
                 {"type": "HEALTH_WORKFORCE", "name": "의료 인력", "source": "master_health_workforce_gu.csv"},
             ],
             "data": report.medic_map,

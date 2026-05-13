@@ -29,7 +29,10 @@ def get_noise_detail(report: Report) -> dict:
                 {"type": "NOISE_PUB", "name": "생활 소음원", "source": "master_map_noise_pub_point.csv"},
                 {"type": "NOISE_COMPLAINT", "name": "소음 민원", "source": "master_noise_complaint.csv"},
                 {"type": "NOISE_MEASUREMENT", "name": "측정망 소음도", "source": "master_noise_measurement.csv"},
-                {"type": "NOISE_HOURLY", "name": "시간대별 추정 소음", "source": "master_noise_hourly_estimation.csv"},
+                {"type": "NOISE_HOURLY", "name": "시간대별 추정 소음", "source": "master_noise_hourly_lden.csv"},
+                {"type": "NOISE_IDW_GRID", "name": "IDW 추정 소음", "source": "master_noise_idw_grid.csv"},
+                {"type": "NOISE_LDEN", "name": "LDEN 장기 소음", "source": "master_noise_lden_point.csv"},
+                {"type": "NOISE_TRAFFIC", "name": "교통량 소음", "source": "master_noise_traffic_point.csv"},
             ],
         },
         "data_source": data_source("도로/철도/항공/생활 소음원, 소음 민원, 시간대별 소음 추정 전처리 데이터 기반"),
@@ -40,10 +43,10 @@ def _indicator_scores(report: Report) -> list[dict]:
     noise_pub_score = _score("noise_pub_density", report.noise_pub_density, inverse=True)
     noise_complaint_score = _score("noise_complaint", report.noise_complaint, inverse=True)
     noise_db_score = _score("noise_db", report.noise_db, inverse=True)
-    road_noise_score = _score("noise_road", report.road_noise, inverse=True)
+    road_noise_score = _score("noise_traffic_point", report.road_noise, inverse=True)
     aircraft_noise_score = _score("noise_aircraft", report.aircraft_noise, inverse=True)
     rail_noise_score = _score("noise_rail", report.rail_noise, inverse=True)
-    noise_hourly_score = _score("noise_hourly", report.noise_hourly, inverse=True)
+    noise_hourly_score = _score("noise_lden", report.noise_hourly, inverse=True)
 
     return [
         indicator(

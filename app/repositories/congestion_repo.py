@@ -15,7 +15,16 @@ async def avg_nearby_bus_congestion(db: AsyncSession, lat: float, lng: float, ra
 
 async def get_floating_pop(db: AsyncSession, dong_code: str | None) -> float | None:
     if dong_code:
-        stmt = select(RefFloatingPopulation.total_pop).where(RefFloatingPopulation.dong_code == dong_code)
+        code = str(dong_code)
+        stmt = select(RefFloatingPopulation.total_pop).where(RefFloatingPopulation.dong_code == code)
+        value = await db.scalar(stmt)
+        if value is not None:
+            return float(value)
+
+        prefix = code[:5]
+        stmt = select(func.avg(RefFloatingPopulation.total_pop)).where(
+            RefFloatingPopulation.dong_code.startswith(prefix)
+        )
         value = await db.scalar(stmt)
         if value is not None:
             return float(value)

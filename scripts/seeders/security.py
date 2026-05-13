@@ -50,15 +50,9 @@ async def seed_security(session, data_dir: Path, *, replace: bool = False) -> di
         for _, row in df.iterrows()
     ], replace=replace)
 
-    df = load_csv(base / "master_security_police.csv")
+    df = load_csv(base / "master_security_police_fixed.csv")
     results["ref_police"] = await seed_table(session, RefPolice, [
-        {
-            "station": str_or_none(row["경찰서"]),
-            "office_name": str_or_none(row["관서명"]),
-            "category": str_or_none(row["구분"]),
-            "address": str_or_none(row["주소"]),
-            "raw_score": float_or_none(row["raw_score_police"]),
-        }
+        _police_record(row)
         for _, row in df.iterrows()
     ], replace=replace)
 
@@ -92,7 +86,7 @@ async def seed_security(session, data_dir: Path, *, replace: bool = False) -> di
         for _, row in df.iterrows()
     ], replace=replace)
 
-    df = load_csv(base / "master_security_safepath.csv")
+    df = load_csv(base / "master_security_safepath_fixed.csv")
     results["ref_safepath"] = await seed_table(session, RefSafePath, [
         {
             "region_code": str_or_none(row["행정구역명"]),
@@ -103,3 +97,31 @@ async def seed_security(session, data_dir: Path, *, replace: bool = False) -> di
     ], replace=replace)
 
     return results
+
+
+def _police_record(row) -> dict:
+    record = {
+        "station": str_or_none(row["경찰서"]),
+        "office_name": str_or_none(row["관서명"]),
+        "category": str_or_none(row["구분"]),
+        "address": str_or_none(row.get("clean_address") or row.get("주소")),
+        "lat": _float_or_none(row.get("lat")),
+        "lon": _float_or_none(row.get("lon")),
+        "raw_score": float_or_none(row["raw_score_police"]),
+    }
+    geom = _make_point_or_none(row.get("lon"), row.get("lat"))
+    if geom is not None:
+        record["geom"] = geom
+    return record
+
+
+def _float_or_none(value) -> float | None:
+    if value in (None, ""):
+        return None
+    return float_or_none(value)
+
+
+def _make_point_or_none(lon, lat):
+    if lon in (None, "") or lat in (None, ""):
+        return None
+    return make_point(lon, lat)

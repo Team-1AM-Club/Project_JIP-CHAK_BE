@@ -15,6 +15,14 @@ def _load_json(path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
+def _load_first_json(*paths: Path) -> dict[str, Any]:
+    for path in paths:
+        payload = _load_json(path)
+        if payload:
+            return payload
+    return {}
+
+
 def _stat_items(payload: dict[str, Any]) -> dict[str, dict[str, float]]:
     return {
         key: value
@@ -25,8 +33,14 @@ def _stat_items(payload: dict[str, Any]) -> dict[str, dict[str, float]]:
 
 _security = _load_json(DATA_DIR / "치안리스크" / "meta_security_stats.json")
 _flood = _load_json(DATA_DIR / "침수리스크" / "meta_flood_stats.json")
-_noise = _load_json(DATA_DIR / "소음리스크" / "meta_noise_stats.json")
-_health = _load_json(DATA_DIR / "의료접근성" / "meta_health_stats.json")
+_noise = _load_first_json(
+    DATA_DIR / "소음리스크" / "meta_noise_stats_final.json",
+    DATA_DIR / "소음리스크" / "meta_noise_stats.json",
+)
+_health = _load_first_json(
+    DATA_DIR / "의료접근성" / "meta_health_unified_stats.json",
+    DATA_DIR / "의료접근성" / "meta_health_stats.json",
+)
 _congestion = _load_json(DATA_DIR / "생활혼잡도" / "meta_congestion_stats.json")
 
 META_STATS: dict[str, dict[str, float]] = {

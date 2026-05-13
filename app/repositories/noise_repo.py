@@ -5,12 +5,15 @@ from app.models.reference.noise import (
     RefNoiseAircraft,
     RefNoiseComplaint,
     RefNoiseHourly,
+    RefNoiseIdwGrid,
+    RefNoiseLdenPoint,
     RefNoiseMeasurement,
     RefNoisePub,
     RefNoiseRail,
     RefNoiseRoad,
+    RefNoiseTrafficPoint,
 )
-from app.repositories.geo import within_radius_expr
+from app.repositories.geo import distance_m_expr, within_radius_expr
 
 
 async def count_nearby_pubs(db: AsyncSession, lat: float, lng: float, radius_m: int = 500) -> int:
@@ -26,6 +29,41 @@ async def get_noise_complaint(db: AsyncSession, gu_name: str | None) -> RefNoise
 
 async def get_avg_noise_measurement(db: AsyncSession) -> float | None:
     stmt = select(func.avg(RefNoiseMeasurement.leq))
+    value = await db.scalar(stmt)
+    return float(value) if value is not None else None
+
+
+async def get_nearest_idw_noise(db: AsyncSession, lat: float, lng: float) -> float | None:
+    distance = distance_m_expr(RefNoiseIdwGrid.geom, lat, lng).label("distance_m")
+    stmt = (
+        select(RefNoiseIdwGrid.estimated_db)
+        .order_by(distance)
+        .limit(1)
+    )
+    value = await db.scalar(stmt)
+    return float(value) if value is not None else None
+
+
+async def get_nearest_lden_noise(db: AsyncSession, lat: float, lng: float) -> float | None:
+    distance = distance_m_expr(RefNoiseLdenPoint.geom, lat, lng).label("distance_m")
+    stmt = (
+        select(RefNoiseLdenPoint.raw_score)
+        .where(RefNoiseLdenPoint.raw_score.is_not(None))
+        .order_by(distance)
+        .limit(1)
+    )
+    value = await db.scalar(stmt)
+    return float(value) if value is not None else None
+
+
+async def get_nearest_traffic_noise(db: AsyncSession, lat: float, lng: float) -> float | None:
+    distance = distance_m_expr(RefNoiseTrafficPoint.geom, lat, lng).label("distance_m")
+    stmt = (
+        select(RefNoiseTrafficPoint.raw_score)
+        .where(RefNoiseTrafficPoint.raw_score.is_not(None))
+        .order_by(distance)
+        .limit(1)
+    )
     value = await db.scalar(stmt)
     return float(value) if value is not None else None
 

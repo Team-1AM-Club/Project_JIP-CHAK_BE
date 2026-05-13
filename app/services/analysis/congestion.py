@@ -24,7 +24,7 @@ def get_congestion_detail(report: Report) -> dict:
             "layers": [
                 {"type": "BUS", "name": "버스 혼잡도", "source": "master_congestion_bus.csv"},
                 {"type": "SUBWAY", "name": "지하철 혼잡도", "source": "master_congestion_subway.csv"},
-                {"type": "POPULATION", "name": "생활인구", "source": "master_congestion_population_fixed.csv"},
+                {"type": "POPULATION", "name": "생활인구", "source": "preprocessed_population_risk.csv"},
             ],
         },
         "data_source": data_source("생활인구, 버스/지하철 혼잡도, 시간대별 밀도 전처리 데이터 기반"),

@@ -1,16 +1,16 @@
 {
     "stats": {
         "health_night_clinic": {
-            "p05": 1.0,
-            "p95": 45.75
+            "p05": 0.0,
+            "p95": 43.7
         },
         "health_pharmacy": {
-            "p05": 1.0,
-            "p95": 35.0
+            "p05": 0.0,
+            "p95": 34.4
         },
         "health_workforce_gu": {
             "p05": 678.0,
-            "p95": 6505.599999999999
+            "p95": 6505.6
         },
         "ui_rendering": {
             "color_scale": {
@@ -35,6 +35,18 @@
                     "color": "#F44336"
                 }
             }
+        },
+        "health_night_clinic_weighted": {
+            "p05": 1.0,
+            "p95": 98.0
+        },
+        "health_night_clinic_point": {
+            "p05": 1.0,
+            "p95": 1.0
+        },
+        "health_pharmacy_individual": {
+            "p05": 10.0,
+            "p95": 45.0
         }
     }
 }

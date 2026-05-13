@@ -46,6 +46,35 @@ async def get_police_score(db: AsyncSession, gu_name: str | None) -> float | Non
     return float(value) if value is not None else None
 
 
+async def get_police_score_nearby(
+    db: AsyncSession,
+    lat: float,
+    lng: float,
+    gu_name: str | None,
+    radius_m: int = 1000,
+) -> float | None:
+    nearby_stmt = select(func.avg(RefPolice.raw_score)).where(
+        RefPolice.geom.is_not(None),
+        within_radius_expr(RefPolice.geom, lat, lng, radius_m),
+    )
+    value = await db.scalar(nearby_stmt)
+    if value is not None:
+        return float(value)
+
+    distance = distance_m_expr(RefPolice.geom, lat, lng).label("distance_m")
+    nearest_stmt = (
+        select(RefPolice.raw_score)
+        .where(RefPolice.geom.is_not(None), RefPolice.raw_score.is_not(None))
+        .order_by(distance)
+        .limit(1)
+    )
+    value = await db.scalar(nearest_stmt)
+    if value is not None:
+        return float(value)
+
+    return await get_police_score(db, gu_name)
+
+
 async def get_crime_score(db: AsyncSession, gu_name: str | None) -> RefCrime | None:
     if not gu_name:
         return None
@@ -67,4 +96,14 @@ async def get_police_pop_score(db: AsyncSession, gu_name: str | None) -> RefPoli
 async def get_safepath_score(db: AsyncSession, region_code: str | None) -> RefSafePath | None:
     if not region_code:
         return None
-    return await db.scalar(select(RefSafePath).where(RefSafePath.region_code == region_code))
+    exact = await db.scalar(select(RefSafePath).where(RefSafePath.region_code == region_code))
+    if exact is not None:
+        return exact
+
+    prefix = str(region_code)[:5]
+    value = await db.scalar(
+        select(func.avg(RefSafePath.raw_score)).where(RefSafePath.region_code.startswith(prefix))
+    )
+    if value is None:
+        return None
+    return RefSafePath(region_code=prefix, raw_score=float(value))

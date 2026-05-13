@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pandas as pd
-
 from app.models.reference.congestion import (
     RefBusHourly,
     RefBusStop,
@@ -15,14 +13,13 @@ async def seed_congestion(session, data_dir: Path, *, replace: bool = False) -> 
     base = data_dir / "생활혼잡도"
     results: dict[str, int] = {}
 
-    # 버스 정류소 (일평균 이용량)
     df = load_csv(base / "master_congestion_bus.csv")
     results["ref_bus_stop"] = await seed_table(session, RefBusStop, [
         {
             "node_id": str_or_none(row["NODE_ID"]),
             "ars_id": str_or_none(row["ARS_ID"]),
             "stop_name": str_or_none(row["정류소명"]),
-            "stop_type": str_or_none(row.get("정류소타입") or row.get("소속")),
+            "stop_type": str_or_none(row.get("정류소타입") or row.get("속성")),
             "lat": float(row["Y좌표"]),
             "lon": float(row["X좌표"]),
             "geom": make_point(row["X좌표"], row["Y좌표"]),
@@ -32,9 +29,8 @@ async def seed_congestion(session, data_dir: Path, *, replace: bool = False) -> 
         for _, row in df.iterrows()
     ], replace=replace)
 
-    # 버스 시간대별 이용량 (별도 CSV)
     df_hourly = load_csv(base / "master_bus_hourly_per_stop.csv")
-    hour_cols = [c for c in df_hourly.columns if c.endswith("_인구수")]
+    hour_cols = [col for col in df_hourly.columns if col.endswith("_유동인구")]
     results["ref_bus_hourly"] = await seed_table(session, RefBusHourly, [
         {
             "node_id": str_or_none(row["NODE_ID"]),
@@ -43,14 +39,13 @@ async def seed_congestion(session, data_dir: Path, *, replace: bool = False) -> 
             "lon": float(row["X좌표"]),
             "geom": make_point(row["X좌표"], row["Y좌표"]),
             "hourly_pop": {
-                col.replace("_인구수", ""): float_or_none(row[col])
+                col.replace("_유동인구", ""): float_or_none(row[col])
                 for col in hour_cols
             },
         }
         for _, row in df_hourly.iterrows()
     ], replace=replace)
 
-    # 지하철 혼잡도
     df = load_csv(base / "master_congestion_subway.csv")
     results["ref_subway_congestion"] = await seed_table(session, RefSubwayCongestion, [
         {
@@ -61,13 +56,12 @@ async def seed_congestion(session, data_dir: Path, *, replace: bool = False) -> 
         for _, row in df.iterrows()
     ], replace=replace)
 
-    # 유동인구
-    df = load_csv(base / "master_congestion_population_fixed.csv")
+    df = load_csv(base / "preprocessed_population_risk.csv")
     results["ref_floating_pop"] = await seed_table(session, RefFloatingPopulation, [
         {
             "dong_code": str_or_none(row["행정동코드"]),
-            "total_pop": float_or_none(row["총생활인구수"]),
-            "raw_score": float_or_none(row["raw_score_floating_pop"]),
+            "total_pop": float_or_none(row["총생활인구"]),
+            "raw_score": float_or_none(row["raw_score"]),
         }
         for _, row in df.iterrows()
     ], replace=replace)

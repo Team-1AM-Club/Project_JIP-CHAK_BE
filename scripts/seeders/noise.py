@@ -4,10 +4,13 @@ from app.models.reference.noise import (
     RefNoiseAircraft,
     RefNoiseComplaint,
     RefNoiseHourly,
+    RefNoiseIdwGrid,
+    RefNoiseLdenPoint,
     RefNoiseMeasurement,
     RefNoisePub,
     RefNoiseRail,
     RefNoiseRoad,
+    RefNoiseTrafficPoint,
 )
 from scripts.seeders.common import float_or_none, load_csv, make_point, seed_table, str_or_none
 
@@ -19,8 +22,8 @@ async def seed_noise(session, data_dir: Path, *, replace: bool = False) -> dict[
     df = load_csv(base / "master_map_noise_pub_point.csv")
     results["ref_noise_pub"] = await seed_table(session, RefNoisePub, [
         {
-            "name": str_or_none(row.get("명") or row.get("사업장명")),
-            "address": str_or_none(row.get("주소") or row.get("도로명주소")),
+            "name": str_or_none(row.get("사업장명") or row.get("명칭")),
+            "address": str_or_none(row.get("주소") or row.get("지번주소") or row.get("도로명주소")),
             "lat": float(row["위도"]),
             "lon": float(row["경도"]),
             "geom": make_point(row["경도"], row["위도"]),
@@ -77,12 +80,51 @@ async def seed_noise(session, data_dir: Path, *, replace: bool = False) -> dict[
         for _, row in df.iterrows()
     ], replace=replace)
 
-    df = load_csv(base / "master_noise_hourly_estimation.csv")
+    df = load_csv(base / "master_noise_hourly_lden.csv")
     results["ref_noise_hourly"] = await seed_table(session, RefNoiseHourly, [
         {
             "station": str_or_none(row["측정지점"]),
             "hour": str_or_none(row["시간"]),
             "raw_score": float_or_none(row["raw_score_noise_hourly"]),
+        }
+        for _, row in df.iterrows()
+    ], replace=replace)
+
+    df = load_csv(base / "master_noise_idw_grid.csv")
+    results["ref_noise_idw_grid"] = await seed_table(session, RefNoiseIdwGrid, [
+        {
+            "grid_lat": float(row["grid_lat"]),
+            "grid_lon": float(row["grid_lon"]),
+            "estimated_db": float(row["estimated_db"]),
+            "geom": make_point(row["grid_lon"], row["grid_lat"]),
+        }
+        for _, row in df.iterrows()
+    ], replace=replace)
+
+    df = load_csv(base / "master_noise_lden_point.csv")
+    results["ref_noise_lden_point"] = await seed_table(session, RefNoiseLdenPoint, [
+        {
+            "station": str_or_none(row["측정지점"]),
+            "lat": float(row["lat"]),
+            "lon": float(row["lon"]),
+            "radius_m": float_or_none(row["radius_m"]),
+            "raw_score": float_or_none(row["raw_score_noise_lden_total"]),
+            "geom": make_point(row["lon"], row["lat"]),
+        }
+        for _, row in df.iterrows()
+    ], replace=replace)
+
+    df = load_csv(base / "master_noise_traffic_point.csv")
+    results["ref_noise_traffic_point"] = await seed_table(session, RefNoiseTrafficPoint, [
+        {
+            "point_no": str_or_none(row["지점번호"]),
+            "point_name": str_or_none(row["지점명칭"]),
+            "daily_traffic": float_or_none(row["일평균_전체교통량"]),
+            "night_traffic": float_or_none(row["일평균_심야교통량"]),
+            "lat": float(row["위도"]),
+            "lon": float(row["경도"]),
+            "raw_score": float_or_none(row["raw_score_noise_risk"]),
+            "geom": make_point(row["경도"], row["위도"]),
         }
         for _, row in df.iterrows()
     ], replace=replace)

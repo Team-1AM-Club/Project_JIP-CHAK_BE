@@ -16,9 +16,9 @@ async def seed_medical(session, data_dir: Path, *, replace: bool = False) -> dic
     df = load_csv(base / "master_map_night_clinics_point_fixed.csv")
     results["ref_night_clinic"] = await seed_table(session, RefNightClinic, [
         {
-            "name": str_or_none(row.get("명") or row.get("기관명")),
+            "name": str_or_none(row.get("기관명") or row.get("명칭")),
             "gu_name": str_or_none(row.get("자치구명") or row.get("주소")),
-            "dong_name": str_or_none(row.get("동") or row.get("행정동명")),
+            "dong_name": str_or_none(row.get("행정동명") or row.get("동")),
             "lat": float(row["병원위도"]),
             "lon": float(row["병원경도"]),
             "geom": make_point(row["병원경도"], row["병원위도"]),
@@ -27,16 +27,16 @@ async def seed_medical(session, data_dir: Path, *, replace: bool = False) -> dic
         for _, row in df.iterrows()
     ], replace=replace)
 
-    df = load_csv(base / "master_map_pharmacy_point_converted.csv")
+    df = load_csv(base / "master_security_pharmacy_individual_latlon.csv")
     results["ref_pharmacy"] = await seed_table(session, RefPharmacy, [
         {
-            "name": str_or_none(row.get("명") or row.get("사업장명")),
-            "gu_name": str_or_none(row["자치구명"]),
-            "dong_name": str_or_none(row.get("동") or row.get("행정동명")),
+            "name": str_or_none(row.get("사업장명") or row.get("명칭")),
+            "gu_name": _extract_gu(row.get("도로명주소") or row.get("지번주소")),
+            "dong_name": None,
             "lat": float(row["위도"]),
             "lon": float(row["경도"]),
             "geom": make_point(row["경도"], row["위도"]),
-            "raw_score": float_or_none(row["raw_score_pharmacy_point"]),
+            "raw_score": float_or_none(row["raw_score_pharmacy"]),
         }
         for _, row in df.iterrows()
     ], replace=replace)
@@ -66,3 +66,10 @@ async def seed_medical(session, data_dir: Path, *, replace: bool = False) -> dic
     ], replace=replace)
 
     return results
+
+
+def _extract_gu(address: object) -> str | None:
+    text = str_or_none(address)
+    if not text:
+        return None
+    return next((part for part in text.split() if part.endswith("구")), None)
