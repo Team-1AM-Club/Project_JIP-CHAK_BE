@@ -79,6 +79,8 @@ class DbPublicDataClient:
             cctv_count = await security_repo.count_nearby_cctv(db, lat, lng)
             light_score = await security_repo.avg_light_blind_score(db, lat, lng)
             crime = await security_repo.get_crime_score(db, gu_name)
+            cctv_growth = await security_repo.get_cctv_growth_score(db, gu_name)
+            police_score = await security_repo.get_police_score(db, gu_name)
             police_pop = await security_repo.get_police_pop_score(db, gu_name)
             safepath = await security_repo.get_safepath_score(db, dong_code)
 
@@ -89,6 +91,10 @@ class DbPublicDataClient:
             nearby_noise_pubs = await noise_repo.count_nearby_pubs(db, lat, lng)
             noise_complaint = await noise_repo.get_noise_complaint(db, gu_name)
             avg_noise_db = await noise_repo.get_avg_noise_measurement(db)
+            road_noise = await noise_repo.get_road_noise_score(db, gu_name)
+            aircraft_noise = await noise_repo.get_avg_aircraft_noise(db)
+            rail_noise = await noise_repo.get_avg_rail_noise(db)
+            hourly_noise = await noise_repo.get_avg_hourly_noise(db)
 
             nightopen_count = await medical_repo.count_nearby_clinics(db, lat, lng)
             pharmacy_count = await medical_repo.count_nearby_pharmacies(db, lat, lng)
@@ -104,16 +110,22 @@ class DbPublicDataClient:
         noise_db_value = avg_noise_db if avg_noise_db is not None else 0.0
         workforce_value = workforce.raw_score if workforce and workforce.raw_score is not None else 0.0
         light_value = light_score if light_score is not None else 0.0
+        cctv_growth_value = cctv_growth.raw_score if cctv_growth and cctv_growth.raw_score is not None else 0.0
+        police_value = police_score if police_score is not None else 0.0
         safepath_value = safepath.raw_score if safepath and safepath.raw_score is not None else 0.0
         police_pop_value = police_pop.raw_score if police_pop and police_pop.raw_score is not None else 0.0
         noise_complaint_value = noise_complaint.raw_score if noise_complaint and noise_complaint.raw_score is not None else 0.0
+        road_noise_value = road_noise if road_noise is not None else 0.0
+        aircraft_noise_value = aircraft_noise if aircraft_noise is not None else 0.0
+        rail_noise_value = rail_noise if rail_noise is not None else 0.0
+        hourly_noise_value = hourly_noise if hourly_noise is not None else 0.0
 
         return {
             "cctv_count": float(cctv_count or 0.0),
-            "cctv_growth": 0.0, # Not provided by repo currently
+            "cctv_growth": float(cctv_growth_value),
             "crime_count": float(crime_value),
             "safepath_score": float(safepath_value),
-            "police_count": 0.0, # Not provided
+            "police_count": float(police_value),
             "police_pop_ratio": float(police_pop_value),
             "light_blind_ratio": float(light_value),
             "safety_map": None,
@@ -123,10 +135,10 @@ class DbPublicDataClient:
             "noise_pub_density": float(nearby_noise_pubs or 0.0),
             "noise_complaint": float(noise_complaint_value),
             "noise_db": float(noise_db_value),
-            "road_noise": 0.0,
-            "aircraft_noise": 0.0,
-            "rail_noise": 0.0,
-            "noise_hourly": 0.0,
+            "road_noise": float(road_noise_value),
+            "aircraft_noise": float(aircraft_noise_value),
+            "rail_noise": float(rail_noise_value),
+            "noise_hourly": float(hourly_noise_value),
             "noise_table": None,
             "night_clinic": float(nightopen_count or 0.0),
             "pharmacy_count": float(pharmacy_count or 0.0),
