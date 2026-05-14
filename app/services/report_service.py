@@ -229,6 +229,10 @@ async def detail_response(db: AsyncSession, user: User, report_id: UUID, categor
     data = handlers[category](report)
     meta = REPORT_CATEGORIES[category]
     score = data["score"]
+    weights = weights_from_user(user)
+    user_weight = weights.get(category, 0)
+    weighted_score = _weighted_detail_score(score, user_weight)
+    weighted_contribution = round(score * user_weight / 100, 2)
 
     # AI 카테고리 요약 생성 (indicators 정보를 함께 전달)
     ai_summary = await generate_category_summary(
@@ -243,6 +247,9 @@ async def detail_response(db: AsyncSession, user: User, report_id: UUID, categor
         "title": meta["title"],
         "score": score,
         "base_score": data.get("base_score", score),
+        "weighted_score": weighted_score,
+        "user_weight": user_weight,
+        "weighted_contribution": weighted_contribution,
         "grade": grade_from_score(score),
         "summary": ai_summary or data["summary"],  # AI 실패 시 기존 Fallback
         "indicators": data["indicators"],
@@ -334,6 +341,12 @@ async def _find_cached_report(db: AsyncSession, user_id: UUID, region_code: str)
 
 def _base_total_score(scores: dict[str, int]) -> int:
     return round(sum(scores.values()) / len(scores))
+
+
+def _weighted_detail_score(score: int, user_weight: int) -> int:
+    if user_weight <= 0:
+        return 0
+    return min(100, round(score * (user_weight / 20)))
 
 
 def _is_seoul_location(dong_code: str | None, *addresses: str | None) -> bool:

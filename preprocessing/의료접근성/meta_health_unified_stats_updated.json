@@ -1,0 +1,52 @@
+{
+  "stats": {
+    "health_night_clinic": {
+      "p05": 0.0,
+      "p95": 43.699999999999996
+    },
+    "health_pharmacy": {
+      "p05": 0.0,
+      "p95": 34.39999999999999
+    },
+    "health_workforce_gu": {
+      "p05": 678.0,
+      "p95": 6505.599999999999
+    },
+    "ui_rendering": {
+      "color_scale": {
+        "안전 (Safe)": {
+          "min": 80,
+          "max": 100,
+          "color": "#4CAF50"
+        },
+        "주의 (Caution)": {
+          "min": 60,
+          "max": 79,
+          "color": "#FFC107"
+        },
+        "위험 (Warning)": {
+          "min": 40,
+          "max": 59,
+          "color": "#FF9800"
+        },
+        "고위험 (High Risk)": {
+          "min": 0,
+          "max": 39,
+          "color": "#F44336"
+        }
+      }
+    },
+    "health_night_clinic_weighted": {
+      "p05": 1.0,
+      "p95": 98.0
+    },
+    "health_night_clinic_point": {
+      "p05": 1.0,
+      "p95": 1.0
+    },
+    "health_pharmacy_individual": {
+      "p05": 10.0,
+      "p95": 45.0
+    }
+  }
+}

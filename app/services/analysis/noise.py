@@ -1,6 +1,6 @@
 from app.core.meta_stats import get_stat
 from app.models.report import Report
-from app.services.analysis.detail import data_source, indicator
+from app.services.analysis.detail import data_source, indicator, indicator_chart
 from app.services.analysis.scorer import normalize, summary_for_score, weighted_sum
 
 
@@ -13,15 +13,17 @@ def calculate_noise_score(report: Report) -> int:
 
 def get_noise_detail(report: Report) -> dict:
     score = calculate_noise_score(report)
+    indicators = _indicator_scores(report)
     return {
         "score": score,
         "base_score": score,
         "summary": summary_for_score(score),
-        "indicators": _indicator_scores(report),
+        "indicators": indicators,
         "visualization": {
             "type": "map_chart",
             "center": {"lat": report.lat, "lng": report.lng},
-            "chart": _chart_data(report),
+            "chart": indicator_chart(indicators),
+            "time_series_chart": _chart_data(report),
             "layers": [
                 {"type": "ROAD", "name": "도로 소음", "source": "master_noise_road_fixed.csv"},
                 {"type": "RAIL", "name": "철도 소음", "source": "master_noise_rail.csv"},

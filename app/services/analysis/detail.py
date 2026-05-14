@@ -53,6 +53,18 @@ def indicator(
     }
 
 
+def indicator_chart(indicators: list[dict], *, chart_type: str = "bar") -> dict:
+    return {
+        "type": chart_type,
+        "unit": "score",
+        "labels": [item["name"] for item in indicators],
+        "values": [item["score"] for item in indicators],
+        "display_values": [item["display_value"] for item in indicators],
+        "statuses": [item["status"] for item in indicators],
+        "weights": [item["weight"] for item in indicators],
+    }
+
+
 def data_source(description: str) -> dict:
     return {
         "type": "STATIC_CACHE",

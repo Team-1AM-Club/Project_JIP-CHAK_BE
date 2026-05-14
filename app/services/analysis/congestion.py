@@ -1,6 +1,6 @@
 from app.core.meta_stats import get_stat
 from app.models.report import Report
-from app.services.analysis.detail import data_source, indicator
+from app.services.analysis.detail import data_source, indicator, indicator_chart
 from app.services.analysis.scorer import clamp_score, normalize, summary_for_score, weighted_sum
 
 
@@ -13,14 +13,16 @@ def calculate_congestion_score(report: Report) -> int:
 
 def get_congestion_detail(report: Report) -> dict:
     score = calculate_congestion_score(report)
+    indicators = _indicator_scores(report)
     return {
         "score": score,
         "base_score": score,
         "summary": summary_for_score(score),
-        "indicators": _indicator_scores(report),
+        "indicators": indicators,
         "visualization": {
             "type": "chart",
-            "chart": _chart_data(report),
+            "chart": indicator_chart(indicators),
+            "time_series_chart": _chart_data(report),
             "layers": [
                 {"type": "BUS", "name": "버스 혼잡도", "source": "master_congestion_bus.csv"},
                 {"type": "SUBWAY", "name": "지하철 혼잡도", "source": "master_congestion_subway.csv"},

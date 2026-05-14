@@ -9,11 +9,14 @@ class RefNightClinic(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=True)
+    facility_type = Column(String, nullable=True)
+    address = Column(String, nullable=True)
     gu_name = Column(String, nullable=True, index=True)
     dong_name = Column(String, nullable=True, index=True)
     lat = Column(Float, nullable=False)
     lon = Column(Float, nullable=False)
     geom = Column(Geometry("POINT", srid=4326), nullable=False)
+    close_time = Column(Integer, nullable=True)
     raw_score = Column(Float, nullable=True)
 
     __table_args__ = (Index("idx_ref_night_clinic_geom", "geom", postgresql_using="gist"),)
@@ -24,11 +27,13 @@ class RefPharmacy(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=True)
+    address = Column(String, nullable=True)
     gu_name = Column(String, nullable=True, index=True)
     dong_name = Column(String, nullable=True, index=True)
     lat = Column(Float, nullable=False)
     lon = Column(Float, nullable=False)
     geom = Column(Geometry("POINT", srid=4326), nullable=False)
+    close_time = Column(Integer, nullable=True)
     raw_score = Column(Float, nullable=True)
 
     __table_args__ = (Index("idx_ref_pharmacy_geom", "geom", postgresql_using="gist"),)

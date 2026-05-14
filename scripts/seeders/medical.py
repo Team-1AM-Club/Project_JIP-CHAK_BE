@@ -17,11 +17,14 @@ async def seed_medical(session, data_dir: Path, *, replace: bool = False) -> dic
     results["ref_night_clinic"] = await seed_table(session, RefNightClinic, [
         {
             "name": str_or_none(row.get("기관명") or row.get("명칭")),
+            "facility_type": str_or_none(row.get("병원분류명")),
+            "address": str_or_none(row.get("주소")),
             "gu_name": str_or_none(row.get("자치구명") or row.get("주소")),
             "dong_name": str_or_none(row.get("행정동명") or row.get("동")),
             "lat": float(row["병원위도"]),
             "lon": float(row["병원경도"]),
             "geom": make_point(row["병원경도"], row["병원위도"]),
+            "close_time": _close_hour(row.get("max_close_time")),
             "raw_score": float_or_none(row["raw_score_clinic_point"]),
         }
         for _, row in df.iterrows()
@@ -31,11 +34,13 @@ async def seed_medical(session, data_dir: Path, *, replace: bool = False) -> dic
     results["ref_pharmacy"] = await seed_table(session, RefPharmacy, [
         {
             "name": str_or_none(row.get("사업장명") or row.get("명칭")),
+            "address": str_or_none(row.get("도로명주소") or row.get("지번주소")),
             "gu_name": _extract_gu(row.get("도로명주소") or row.get("지번주소")),
             "dong_name": None,
             "lat": float(row["위도"]),
             "lon": float(row["경도"]),
             "geom": make_point(row["경도"], row["위도"]),
+            "close_time": _close_hour(row.get("영업종료시간_가상")),
             "raw_score": float_or_none(row["raw_score_pharmacy"]),
         }
         for _, row in df.iterrows()
@@ -73,3 +78,12 @@ def _extract_gu(address: object) -> str | None:
     if not text:
         return None
     return next((part for part in text.split() if part.endswith("구")), None)
+
+
+def _close_hour(value: object) -> int | None:
+    close_time = int_or_none(value)
+    if close_time is None:
+        return None
+    if close_time >= 100:
+        return close_time // 100
+    return close_time

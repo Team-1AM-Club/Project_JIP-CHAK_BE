@@ -4,7 +4,14 @@ from app.models.reference.congestion import (
     RefFloatingPopulation,
     RefSubwayCongestion,
 )
-from app.models.reference.flood import RefFloodPump, RefFloodTrace, RefImpervious
+from app.models.reference.flood import (
+    RefFloodDefense,
+    RefFloodPump,
+    RefFloodTrace,
+    RefFloodTracePoint,
+    RefFloodTraceSummary,
+    RefImpervious,
+)
 from app.models.reference.medical import (
     RefHealthDong,
     RefHealthWorkforce,
@@ -40,6 +47,9 @@ __all__ = [
     "RefSubwayCongestion",
     "RefFloodPump",
     "RefFloodTrace",
+    "RefFloodDefense",
+    "RefFloodTracePoint",
+    "RefFloodTraceSummary",
     "RefImpervious",
     "RefHealthDong",
     "RefHealthWorkforce",

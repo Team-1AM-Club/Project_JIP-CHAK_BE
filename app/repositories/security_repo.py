@@ -26,6 +26,19 @@ async def avg_light_blind_score(db: AsyncSession, lat: float, lng: float, radius
     return float(value) if value is not None else None
 
 
+async def light_stats_nearby(db: AsyncSession, lat: float, lng: float, radius_m: int = 500) -> dict:
+    base_filter = within_radius_expr(RefLightBlind.geom, lat, lng, radius_m)
+    total = await db.scalar(select(func.count()).where(base_filter))
+    safe_spot = await db.scalar(select(func.count()).where(base_filter, RefLightBlind.is_blind.is_(True)))
+    avg_score = await db.scalar(select(func.avg(RefLightBlind.raw_score)).where(base_filter))
+    return {
+        "nearby_count": int(total or 0),
+        "safe_spot_count": int(safe_spot or 0),
+        "avg_safe_bonus_score": round(float(avg_score), 1) if avg_score is not None else None,
+        "radius_m": radius_m,
+    }
+
+
 async def nearest_police_distance(db: AsyncSession, lat: float, lng: float) -> float | None:
     distance = distance_m_expr(RefPolice.geom, lat, lng).label("distance_m")
     stmt = (
@@ -36,6 +49,24 @@ async def nearest_police_distance(db: AsyncSession, lat: float, lng: float) -> f
     )
     value = await db.scalar(stmt)
     return float(value) if value is not None else None
+
+
+async def nearest_police_detail(db: AsyncSession, lat: float, lng: float) -> dict | None:
+    distance = distance_m_expr(RefPolice.geom, lat, lng).label("distance_m")
+    stmt = (
+        select(RefPolice.office_name, RefPolice.station, RefPolice.category, distance)
+        .where(RefPolice.geom.is_not(None))
+        .order_by(distance)
+        .limit(1)
+    )
+    row = (await db.execute(stmt)).first()
+    if row is None:
+        return None
+    office_name, station, category, distance_m = row
+    return {
+        "name": office_name or station or category or "가까운 파출소",
+        "distance_m": float(distance_m),
+    }
 
 
 async def get_police_score(db: AsyncSession, gu_name: str | None) -> float | None:

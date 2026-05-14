@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, Float, Index, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
 
 from app.db.base import Base
@@ -55,6 +56,7 @@ class RefCrime(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     gu_name = Column(String, nullable=False, unique=True, index=True)
     raw_score = Column(Float, nullable=True)
+    detail_json = Column(JSONB, nullable=True)
 
 
 class RefPolicePopulation(Base):
@@ -77,6 +79,7 @@ class RefCctvGrowth(Base):
     count_2025 = Column(Integer, nullable=True)
     growth_rate = Column(Float, nullable=True)
     raw_score = Column(Float, nullable=True)
+    detail_json = Column(JSONB, nullable=True)
 
 
 class RefSafePath(Base):
