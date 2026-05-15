@@ -285,11 +285,9 @@ def _police_record(row) -> dict:
         "address": str_or_none(row.get("clean_address") or row.get("주소")),
         "lat": _float_or_none(row.get("lat")),
         "lon": _float_or_none(row.get("lon")),
+        "geom": _make_point_or_none(row.get("lon"), row.get("lat")),
         "raw_score": float_or_none(row["raw_score_police"]),
     }
-    geom = _make_point_or_none(row.get("lon"), row.get("lat"))
-    if geom is not None:
-        record["geom"] = geom
     return record
 
 
