@@ -100,13 +100,20 @@ class DbPublicDataClient:
             flood_trace_events = await flood_repo.get_flood_trace_events(db, gu_name)
             nearby_flood_trace_count = await flood_repo.count_nearby_flood_trace_points(db, lat, lng)
 
-            nearby_noise_pubs = await noise_repo.count_nearby_pubs(db, lat, lng)
+            nearby_noise_pubs = await noise_repo.count_nearby_pubs(db, lat, lng, radius_m=200)
             noise_complaint = await noise_repo.get_noise_complaint(db, gu_name)
+            avg_noise_complaint = await noise_repo.get_avg_noise_complaint(db)
             nearest_noise_db = await noise_repo.get_nearest_idw_noise(db, lat, lng)
             avg_noise_db = await noise_repo.get_avg_noise_measurement(db)
             road_noise = await noise_repo.get_road_noise_score(db, gu_name)
             traffic_noise = await noise_repo.get_nearest_traffic_noise(db, lat, lng)
+            traffic_noise_detail = await noise_repo.get_nearest_traffic_noise_detail(db, lat, lng)
             lden_noise = await noise_repo.get_nearest_lden_noise(db, lat, lng)
+            measurement_detail = await noise_repo.get_nearest_measurement_detail(db, lat, lng)
+            hourly_noise_rows = await noise_repo.get_hourly_noise_by_station(
+                db,
+                measurement_detail.get("station") if measurement_detail else None,
+            )
             aircraft_noise = await noise_repo.get_avg_aircraft_noise(db)
             rail_noise = await noise_repo.get_avg_rail_noise(db)
             hourly_noise = await noise_repo.get_avg_hourly_noise(db)
@@ -122,6 +129,10 @@ class DbPublicDataClient:
             bus_congestion = await congestion_repo.avg_nearby_bus_congestion(db, lat, lng)
             floating_pop = await congestion_repo.get_floating_pop(db, dong_code)
             commute_congestion = await congestion_repo.get_avg_subway_congestion(db)
+            population_detail = await congestion_repo.get_floating_population_detail(db, dong_code)
+            nearest_subway = await congestion_repo.nearest_subway_station(db, lat, lng)
+            nearest_bus = await congestion_repo.nearest_bus_stop(db, lat, lng)
+            bus_hourly = await congestion_repo.nearby_bus_hourly_average(db, lat, lng)
 
         crime_value = crime.raw_score if crime and crime.raw_score is not None else 0.0
         impervious_value = (
@@ -188,7 +199,17 @@ class DbPublicDataClient:
             "aircraft_noise": float(aircraft_noise_value),
             "rail_noise": float(rail_noise_value),
             "noise_hourly": float(hourly_noise_value),
-            "noise_table": None,
+            "noise_table": _noise_table(
+                gu_name=gu_name,
+                pub_count=nearby_noise_pubs,
+                pub_radius_m=200,
+                complaint=noise_complaint,
+                avg_complaint=avg_noise_complaint,
+                traffic=traffic_noise_detail,
+                measurement=measurement_detail,
+                hourly_rows=hourly_noise_rows,
+                nearest_noise_db=noise_db_value,
+            ),
             "night_clinic": float(nightopen_count or 0.0),
             "pharmacy_count": float(pharmacy_count or 0.0),
             "medical_staff": float(workforce_value),
@@ -203,7 +224,15 @@ class DbPublicDataClient:
             "congestion_data": {
                 "hourly_population_density": floating_pop,
                 "bus_congestion": bus_congestion,
-                "commute_congestion": commute_congestion,
+                "commute_congestion": (
+                    nearest_subway.get("peak_congestion_total")
+                    if nearest_subway and nearest_subway.get("peak_congestion_total") is not None
+                    else commute_congestion
+                ),
+                "population_detail": population_detail,
+                "nearest_subway": nearest_subway,
+                "nearest_bus": nearest_bus,
+                "bus_hourly": bus_hourly,
             },
         }
 
@@ -321,6 +350,35 @@ def _flood_map(
             "years": trace_years,
             "events": trace_events,
         },
+    }
+
+
+def _noise_table(
+    *,
+    gu_name: str | None,
+    pub_count: int,
+    pub_radius_m: int,
+    complaint,
+    avg_complaint: float | None,
+    traffic: dict | None,
+    measurement: dict | None,
+    hourly_rows: list[dict],
+    nearest_noise_db: float | None,
+) -> dict:
+    return {
+        "pub": {
+            "count": int(pub_count or 0),
+            "radius_m": pub_radius_m,
+        },
+        "complaint": {
+            "gu_name": gu_name,
+            "yearly_count": _float_or_none(complaint.raw_score if complaint else None),
+            "seoul_average_yearly": _float_or_none(avg_complaint),
+        },
+        "traffic": traffic,
+        "measurement": measurement,
+        "hourly": hourly_rows,
+        "nearest_noise_db": _float_or_none(nearest_noise_db),
     }
 
 

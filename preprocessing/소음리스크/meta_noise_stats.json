@@ -1,112 +1,119 @@
 {
-    "stats": {
-        "noise_measurement_leq": {
-            "p05": 65.57,
-            "p95": 75.79,
-            "unit": "dB(A)",
-            "n": 9,
-            "description": "환경소음 자동측정망 9개 지점 평균 소음도 (LEQ)"
-        },
-        "noise_measurement_score": {
-            "p05": 65.57,
-            "p95": 75.79,
-            "unit": "dB(A)",
-            "n": 9,
-            "description": "측정망 raw_score (현재 LEQ와 동일값)"
-        },
-        "noise_rail": {
-            "p05": 0.2308,
-            "p95": 1.0989,
-            "unit": "정규화 점수 (역간거리 기반)",
-            "n": 100,
-            "description": "철도 구간별 소음 리스크 점수 (역간거리 역수 정규화)"
-        },
-        "noise_rail_distance_m": {
-            "p05": 900.0,
-            "p95": 4325.0,
-            "unit": "m",
-            "n": 100,
-            "description": "철도 역간 거리 (m)"
-        },
-        "noise_road": {
-            "p05": 25699.4,
-            "p95": 120386.2,
-            "unit": "교통량 (대/일)",
-            "n": 457,
-            "description": "도로 LINK별 소음 리스크 점수 (교통량 기반, 단위: 대/일)"
-        },
-        "noise_pub_point": {
-            "p05": 1.0,
-            "p95": 1.0,
-            "unit": "이진값 (0/1)",
-            "n": 1548,
-            "description": "유흥업소(나이트·단란주점 등) 존재 여부 포인트 점수"
-        },
-        "noise_pub_density_per_gu": {
-            "p05": 8.4,
-            "p95": 158.2,
-            "unit": "개/자치구",
-            "n_gu": 25,
-            "description": "자치구별 영업 중 유흥업소 수"
-        },
-        "noise_aircraft": {
-            "p05": 69.27,
-            "p95": 69.27,
-            "unit": "dB(WECPNL)",
-            "n": 1,
-            "description": "김포공항 항로 영향권 측정지점 평균 항공기 소음도"
-        },
-        "noise_complaint": {
-            "p05": 1079.6,
-            "p95": 4626.8,
-            "unit": "건/자치구/년",
-            "n": 25,
-            "description": "자치구별 연간 소음·진동 민원 건수"
-        },
-        "noise_hourly_raw": {
-            "p05": 62.08,
-            "p95": 78.16,
-            "unit": "dB(A)",
-            "n": 216,
-            "description": "시간대별 추정 소음도 (보정 전, 24시×9지점)"
-        },
-        "noise_hourly_lden": {
-            "p05": 67.48,
-            "p95": 82.14,
-            "unit": "dB(A)",
-            "n": 216,
-            "description": "시간대별 Lden 가중 소음도 (야간+10dB, 저녁+5dB 보정)"
-        },
-        "noise_time_penalty": {
-            "values": [
-                0,
-                5,
-                10
-            ],
-            "unit": "dB 가산치",
-            "description": "시간대별 Lden 패널티 (주간 0, 저녁 5, 야간 10)"
-        },
-        "noise_idw_grid": {
-            "p05": 68.5,
-            "p95": 72.49,
-            "unit": "dB(A)",
-            "n": 10000,
-            "grid_info": "서울 전역 100×100 격자",
-            "description": "IDW 보간법으로 추정한 서울 전역 격자별 소음도"
-        },
-        "noise_lden_total": {
-            "p05": 70.64,
-            "p95": 80.86,
-            "unit": "dB(A) Lden",
-            "n": 9,
-            "description": "측정지점별 24시간 에너지 누적 Lden 통합 소음도"
-        },
-        "noise_energy": {
-            "p05": 11586241.0,
-            "p95": 127858092.0,
-            "unit": "Pa²·s (음향 에너지)",
-            "n": 9,
-            "description": "측정지점별 음향 에너지 누적값"
-        }
+  "stats": {
+    "noise_measurement_leq": {
+      "p05": 65.57,
+      "p95": 75.79,
+      "unit": "dB(A)",
+      "n": 9,
+      "description": "환경소음 자동측정망 9개 지점 평균 소음도 (LEQ)"
+    },
+    "noise_measurement_score": {
+      "p05": 65.57,
+      "p95": 75.79,
+      "unit": "dB(A)",
+      "n": 9,
+      "description": "측정망 raw_score (현재 LEQ와 동일값)"
+    },
+    "noise_rail": {
+      "p05": 0.2308,
+      "p95": 1.0989,
+      "unit": "정규화 점수 (역간거리 기반)",
+      "n": 100,
+      "description": "철도 구간별 소음 리스크 점수 (역간거리 역수 정규화)"
+    },
+    "noise_rail_distance_m": {
+      "p05": 900,
+      "p95": 4325,
+      "unit": "m",
+      "n": 100,
+      "description": "철도 역간 거리 (m)"
+    },
+    "noise_road": {
+      "p05": 25699.4,
+      "p95": 120386.2,
+      "unit": "교통량 (대/일)",
+      "n": 457,
+      "description": "도로 LINK별 소음 리스크 점수 (교통량 기반, 단위: 대/일)"
+    },
+    "noise_pub_point": {
+      "p05": 1,
+      "p95": 1,
+      "unit": "이진값 (0/1)",
+      "n": 1548,
+      "description": "유흥업소(나이트·단란주점 등) 존재 여부 포인트 점수"
+    },
+    "noise_pub_density_per_gu": {
+      "p05": 8.4,
+      "p95": 158.2,
+      "unit": "개/자치구",
+      "n_gu": 25,
+      "description": "자치구별 영업 중 유흥업소 수"
+    },
+    "noise_aircraft": {
+      "p05": 69.27,
+      "p95": 69.27,
+      "unit": "dB(WECPNL)",
+      "n": 1,
+      "description": "김포공항 항로 영향권 측정지점 평균 항공기 소음도"
+    },
+    "noise_complaint": {
+      "p05": 1079.6,
+      "p95": 4626.8,
+      "unit": "건/자치구/년",
+      "n": 25,
+      "description": "자치구별 연간 소음·진동 민원 건수"
+    },
+    "noise_hourly_raw": {
+      "p05": 62.08,
+      "p95": 78.16,
+      "unit": "dB(A)",
+      "n": 216,
+      "description": "시간대별 추정 소음도 (보정 전, 24시×9지점)"
+    },
+    "noise_hourly_lden": {
+      "p05": 67.48,
+      "p95": 82.14,
+      "unit": "dB(A)",
+      "n": 216,
+      "description": "시간대별 Lden 가중 소음도 (야간+10dB, 저녁+5dB 보정)"
+    },
+    "noise_time_penalty": {
+      "values": [
+        0,
+        5,
+        10
+      ],
+      "unit": "dB 가산치",
+      "description": "시간대별 Lden 패널티 (주간 0, 저녁 5, 야간 10)"
+    },
+    "noise_idw_grid": {
+      "p05": 68.5,
+      "p95": 72.49,
+      "unit": "dB(A)",
+      "n": 10000,
+      "grid_info": "서울 전역 100×100 격자",
+      "description": "IDW 보간법으로 추정한 서울 전역 격자별 소음도"
+    },
+    "noise_lden_total": {
+      "p05": 70.64,
+      "p95": 80.86,
+      "unit": "dB(A) Lden",
+      "n": 9,
+      "description": "측정지점별 24시간 에너지 누적 Lden 통합 소음도"
+    },
+    "noise_energy": {
+      "p05": 11586241,
+      "p95": 127858092,
+      "unit": "Pa²·s (음향 에너지)",
+      "n": 9,
+      "description": "측정지점별 음향 에너지 누적값"
+    },
+    "noise_traffic_point": {
+      "p05": 5800.785,
+      "p95": 87928.964,
+      "unit": "교통량 기반 소음 리스크",
+      "n": 139,
+      "description": "교통량 측정지점 기반 도로교통 소음 리스크"
     }
+  }
 }
