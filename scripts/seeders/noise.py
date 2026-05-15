@@ -69,7 +69,11 @@ async def seed_noise(session, data_dir: Path, *, replace: bool = False) -> dict[
             "address": str_or_none(row["주소"]),
             "land_use": str_or_none(row["용도구분"]),
             "leq": float_or_none(row["LEQ"]),
+            "lat": float_or_none(row["lat"]),
+            "lon": float_or_none(row["lon"]),
+            "radius_m": float_or_none(row["radius_m"]),
             "raw_score": float_or_none(row["raw_score_noise_db"]),
+            "geom": make_point(row["lon"], row["lat"]),
         }
         for _, row in df.iterrows()
     ], replace=replace)
@@ -86,6 +90,8 @@ async def seed_noise(session, data_dir: Path, *, replace: bool = False) -> dict[
             "station": str_or_none(row["측정지점"]),
             "hour": str_or_none(row["시간"]),
             "raw_score": float_or_none(row["raw_score_noise_hourly"]),
+            "time_penalty": float_or_none(row["time_penalty"]),
+            "lden_score": float_or_none(row["raw_score_noise_lden_hourly"]),
         }
         for _, row in df.iterrows()
     ], replace=replace)

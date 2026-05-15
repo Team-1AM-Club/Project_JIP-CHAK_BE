@@ -1,6 +1,7 @@
 from typing import Protocol
 
 from app.core.config import settings
+from app.core.meta_stats import get_stat
 from app.db.session import AsyncSessionLocal
 from app.repositories import (
     congestion_repo,
@@ -55,7 +56,11 @@ class MockPublicDataClient:
             "safety_map": None,
             "impervious_ratio": 50.0,
             "pump_cap": 70.0,
-            "flood_map": {"in_flood_trace": False},
+            "flood_map": {
+                "in_flood_trace": False,
+                "flood_defense": None,
+                "flood_history": None,
+            },
             "noise_pub_density": 50.0,
             "noise_complaint": 2000.0,
             "noise_db": 70.0,
@@ -81,20 +86,34 @@ class DbPublicDataClient:
             crime = await security_repo.get_crime_score(db, gu_name)
             cctv_growth = await security_repo.get_cctv_growth_score(db, gu_name)
             police_score = await security_repo.get_police_score_nearby(db, lat, lng, gu_name)
+            nearest_police = await security_repo.nearest_police_detail(db, lat, lng)
             police_pop = await security_repo.get_police_pop_score(db, gu_name)
             safepath = await security_repo.get_safepath_score(db, dong_code)
+            light_stats = await security_repo.light_stats_nearby(db, lat, lng)
 
-            in_flood_trace = await flood_repo.is_in_flood_trace(db, lat, lng)
-            pump_cap = await flood_repo.nearest_pump_capacity(db, lat, lng)
-            impervious_ratio = await flood_repo.get_impervious_ratio(db, gu_name)
+            flood_defense = await flood_repo.get_flood_defense(db, gu_name)
+            flood_defense_avg = await flood_repo.get_flood_defense_average_score(db)
+            flood_defense_top_percent = await flood_repo.get_flood_defense_top_percent(db, gu_name)
+            flood_trace_summary = await flood_repo.get_flood_trace_summary(db, gu_name)
+            flood_trace_avg_count = await flood_repo.get_flood_trace_average_count(db)
+            flood_trace_years = await flood_repo.get_flood_trace_year_counts(db, gu_name)
+            flood_trace_events = await flood_repo.get_flood_trace_events(db, gu_name)
+            nearby_flood_trace_count = await flood_repo.count_nearby_flood_trace_points(db, lat, lng)
 
-            nearby_noise_pubs = await noise_repo.count_nearby_pubs(db, lat, lng)
+            nearby_noise_pubs = await noise_repo.count_nearby_pubs(db, lat, lng, radius_m=200)
             noise_complaint = await noise_repo.get_noise_complaint(db, gu_name)
+            avg_noise_complaint = await noise_repo.get_avg_noise_complaint(db)
             nearest_noise_db = await noise_repo.get_nearest_idw_noise(db, lat, lng)
             avg_noise_db = await noise_repo.get_avg_noise_measurement(db)
             road_noise = await noise_repo.get_road_noise_score(db, gu_name)
             traffic_noise = await noise_repo.get_nearest_traffic_noise(db, lat, lng)
+            traffic_noise_detail = await noise_repo.get_nearest_traffic_noise_detail(db, lat, lng)
             lden_noise = await noise_repo.get_nearest_lden_noise(db, lat, lng)
+            measurement_detail = await noise_repo.get_nearest_measurement_detail(db, lat, lng)
+            hourly_noise_rows = await noise_repo.get_hourly_noise_by_station(
+                db,
+                measurement_detail.get("station") if measurement_detail else None,
+            )
             aircraft_noise = await noise_repo.get_avg_aircraft_noise(db)
             rail_noise = await noise_repo.get_avg_rail_noise(db)
             hourly_noise = await noise_repo.get_avg_hourly_noise(db)
@@ -102,14 +121,30 @@ class DbPublicDataClient:
             nightopen_count = await medical_repo.count_nearby_clinics(db, lat, lng)
             pharmacy_count = await medical_repo.count_nearby_pharmacies(db, lat, lng)
             workforce = await medical_repo.get_health_workforce(db, gu_name)
+            nearest_medical = await medical_repo.nearest_medical_facilities(db, lat, lng)
+            night_density = await medical_repo.night_medical_density(db, lat, lng)
+            hospital_access = await medical_repo.hospital_access(db, lat, lng)
+            workforce_average = await medical_repo.health_workforce_average(db)
 
             bus_congestion = await congestion_repo.avg_nearby_bus_congestion(db, lat, lng)
             floating_pop = await congestion_repo.get_floating_pop(db, dong_code)
             commute_congestion = await congestion_repo.get_avg_subway_congestion(db)
+            population_detail = await congestion_repo.get_floating_population_detail(db, dong_code)
+            nearest_subway = await congestion_repo.nearest_subway_station(db, lat, lng)
+            nearest_bus = await congestion_repo.nearest_bus_stop(db, lat, lng)
+            bus_hourly = await congestion_repo.nearby_bus_hourly_average(db, lat, lng)
 
         crime_value = crime.raw_score if crime and crime.raw_score is not None else 0.0
-        impervious_value = impervious_ratio if impervious_ratio is not None else 0.0
-        pump_value = pump_cap if pump_cap is not None else 0.0
+        impervious_value = (
+            flood_defense.imperv_proxy
+            if flood_defense is not None and flood_defense.imperv_proxy is not None
+            else 0.0
+        )
+        pump_value = (
+            flood_defense.pump_efficiency
+            if flood_defense is not None and flood_defense.pump_efficiency is not None
+            else 0.0
+        )
         noise_db_value = nearest_noise_db if nearest_noise_db is not None else avg_noise_db
         noise_db_value = noise_db_value if noise_db_value is not None else 0.0
         workforce_value = workforce.raw_score if workforce and workforce.raw_score is not None else 0.0
@@ -134,10 +169,29 @@ class DbPublicDataClient:
             "police_count": float(police_value),
             "police_pop_ratio": float(police_pop_value),
             "light_blind_ratio": float(light_value),
-            "safety_map": None,
+            "safety_map": _safety_map(
+                crime=crime,
+                cctv_growth=cctv_growth,
+                nearest_police=nearest_police,
+                light_stats=light_stats,
+                cctv_count=float(cctv_count or 0.0),
+                light_score=light_value,
+                safepath_value=safepath_value,
+                gu_name=gu_name,
+                address=address,
+            ),
             "impervious_ratio": float(impervious_value),
             "pump_cap": float(pump_value),
-            "flood_map": {"in_flood_trace": in_flood_trace},
+            "flood_map": _flood_map(
+                defense=flood_defense,
+                defense_average_score=flood_defense_avg,
+                defense_top_percent=flood_defense_top_percent,
+                trace_summary=flood_trace_summary,
+                trace_average_count=flood_trace_avg_count,
+                trace_years=flood_trace_years,
+                trace_events=flood_trace_events,
+                nearby_trace_count=nearby_flood_trace_count,
+            ),
             "noise_pub_density": float(nearby_noise_pubs or 0.0),
             "noise_complaint": float(noise_complaint_value),
             "noise_db": float(noise_db_value),
@@ -145,15 +199,40 @@ class DbPublicDataClient:
             "aircraft_noise": float(aircraft_noise_value),
             "rail_noise": float(rail_noise_value),
             "noise_hourly": float(hourly_noise_value),
-            "noise_table": None,
+            "noise_table": _noise_table(
+                gu_name=gu_name,
+                pub_count=nearby_noise_pubs,
+                pub_radius_m=200,
+                complaint=noise_complaint,
+                avg_complaint=avg_noise_complaint,
+                traffic=traffic_noise_detail,
+                measurement=measurement_detail,
+                hourly_rows=hourly_noise_rows,
+                nearest_noise_db=noise_db_value,
+            ),
             "night_clinic": float(nightopen_count or 0.0),
             "pharmacy_count": float(pharmacy_count or 0.0),
             "medical_staff": float(workforce_value),
-            "medic_map": None,
+            "medic_map": _medic_map(
+                nearest_medical=nearest_medical,
+                night_density=night_density,
+                hospital_access=hospital_access,
+                workforce=workforce,
+                workforce_average=workforce_average,
+                gu_name=gu_name,
+            ),
             "congestion_data": {
                 "hourly_population_density": floating_pop,
                 "bus_congestion": bus_congestion,
-                "commute_congestion": commute_congestion,
+                "commute_congestion": (
+                    nearest_subway.get("peak_congestion_total")
+                    if nearest_subway and nearest_subway.get("peak_congestion_total") is not None
+                    else commute_congestion
+                ),
+                "population_detail": population_detail,
+                "nearest_subway": nearest_subway,
+                "nearest_bus": nearest_bus,
+                "bus_hourly": bus_hourly,
             },
         }
 
@@ -167,6 +246,179 @@ def _extract_gu_name(dong_code: str, address: str | None = None) -> str | None:
             if gu in address:
                 return gu
     return None
+
+
+def _safety_map(
+    *,
+    crime,
+    cctv_growth,
+    nearest_police: dict | None,
+    light_stats: dict,
+    cctv_count: float,
+    light_score: float,
+    safepath_value: float,
+    gu_name: str | None,
+    address: str | None,
+) -> dict:
+    return {
+        "gu_name": gu_name,
+        "display_region_name": _display_region_name(address, gu_name),
+        "crime_detail": crime.detail_json if crime is not None else None,
+        "cctv_growth_detail": cctv_growth.detail_json if cctv_growth is not None else None,
+        "nearest_police": nearest_police,
+        "street_light": {
+            **light_stats,
+            "score": light_score,
+        },
+        "cctv": {
+            "nearby_count": round(cctv_count),
+            "radius_m": 500,
+        },
+        "safepath": {
+            "score": safepath_value,
+        },
+    }
+
+
+def _medic_map(
+    *,
+    nearest_medical: dict,
+    night_density: dict,
+    hospital_access: dict,
+    workforce,
+    workforce_average: dict,
+    gu_name: str | None,
+) -> dict:
+    return {
+        "gu_name": gu_name,
+        "nearest_medical": nearest_medical,
+        "night_density": night_density,
+        "hospital_access": hospital_access,
+        "workforce": None if workforce is None else {
+            "gu_name": workforce.gu_name,
+            "nurse_count": workforce.nurse_count,
+            "specialist_count": workforce.specialist_count,
+            "total": workforce.raw_score,
+        },
+        "workforce_average": workforce_average,
+    }
+
+
+def _flood_map(
+    *,
+    defense,
+    defense_average_score: float | None,
+    defense_top_percent: int | None,
+    trace_summary,
+    trace_average_count: float | None,
+    trace_years: list[dict],
+    trace_events: list[dict],
+    nearby_trace_count: int,
+) -> dict:
+    defense_score = _normalize_score("flood_defense", defense.raw_score if defense is not None else None)
+    trace_count = _float_or_zero(trace_summary.flood_count if trace_summary is not None else None)
+    return {
+        "in_flood_trace": nearby_trace_count > 0,
+        "nearby_trace_count": nearby_trace_count,
+        "flood_defense": None if defense is None else {
+            "gu_name": defense.gu_name,
+            "score": defense_score,
+            "gu_average": defense_average_score,
+            "top_percent": defense_top_percent,
+            "avg_elevation_m": _float_or_none(defense.avg_elevation_m),
+            "num_stations": _float_or_none(defense.num_stations),
+            "total_pump_m3": _float_or_none(defense.total_pump_m3),
+            "pump_efficiency": _float_or_none(defense.pump_efficiency),
+            "imperv_proxy": _float_or_none(defense.imperv_proxy),
+            "score_elevation": _ratio_to_score(defense.score_elevation),
+            "score_pump": _ratio_to_score(defense.score_pump),
+            "score_imperv": _ratio_to_score(defense.score_imperv),
+            "contour_line_count": defense.contour_line_count,
+            "score_contour": _ratio_to_score(defense.score_contour),
+        },
+        "flood_history": None if trace_summary is None else {
+            "period": _history_period(trace_summary.data_year),
+            "total_count": round(trace_count),
+            "gu_average": trace_average_count,
+            "data_available": bool(trace_summary.data_available),
+            "total_flood_area": _float_or_none(trace_summary.total_flood_area),
+            "mean_flood_area": _float_or_none(trace_summary.mean_flood_area),
+            "mean_flood_depth": _float_or_none(trace_summary.mean_flood_depth),
+            "max_flood_depth": _float_or_none(trace_summary.max_flood_depth),
+            "raw_score": _float_or_none(trace_summary.raw_score),
+            "data_year": trace_summary.data_year,
+            "years": trace_years,
+            "events": trace_events,
+        },
+    }
+
+
+def _noise_table(
+    *,
+    gu_name: str | None,
+    pub_count: int,
+    pub_radius_m: int,
+    complaint,
+    avg_complaint: float | None,
+    traffic: dict | None,
+    measurement: dict | None,
+    hourly_rows: list[dict],
+    nearest_noise_db: float | None,
+) -> dict:
+    return {
+        "pub": {
+            "count": int(pub_count or 0),
+            "radius_m": pub_radius_m,
+        },
+        "complaint": {
+            "gu_name": gu_name,
+            "yearly_count": _float_or_none(complaint.raw_score if complaint else None),
+            "seoul_average_yearly": _float_or_none(avg_complaint),
+        },
+        "traffic": traffic,
+        "measurement": measurement,
+        "hourly": hourly_rows,
+        "nearest_noise_db": _float_or_none(nearest_noise_db),
+    }
+
+
+def _float_or_none(value) -> float | None:
+    return float(value) if value is not None else None
+
+
+def _float_or_zero(value) -> float:
+    return float(value) if value is not None else 0.0
+
+
+def _ratio_to_score(value) -> int | None:
+    if value is None:
+        return None
+    return max(0, min(100, round(float(value) * 100)))
+
+
+def _normalize_score(key: str, value) -> int | None:
+    if value is None:
+        return None
+    stat = get_stat(key)
+    if not stat or stat["p95"] == stat["p05"]:
+        return _ratio_to_score(value)
+    score = (float(value) - stat["p05"]) / (stat["p95"] - stat["p05"]) * 100
+    return max(0, min(100, round(score)))
+
+
+def _history_period(data_year: int | None) -> str:
+    return str(data_year or 2025)
+
+
+def _display_region_name(address: str | None, gu_name: str | None) -> str | None:
+    if address:
+        parts = address.split()
+        for part in parts:
+            if part.endswith("동"):
+                return f"{part} 기준"
+        if len(parts) >= 3:
+            return f"{parts[2]} 기준"
+    return f"{gu_name} 기준" if gu_name else None
 
 def _create_client() -> PublicDataClient:
     if settings.DATA_PROVIDER.lower() == "db":

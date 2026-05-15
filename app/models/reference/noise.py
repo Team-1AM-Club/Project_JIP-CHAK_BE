@@ -56,7 +56,13 @@ class RefNoiseMeasurement(Base):
     address = Column(String, nullable=True)
     land_use = Column(String, nullable=True)
     leq = Column(Float, nullable=True)
+    lat = Column(Float, nullable=True)
+    lon = Column(Float, nullable=True)
+    radius_m = Column(Float, nullable=True)
     raw_score = Column(Float, nullable=True)
+    geom = Column(Geometry("POINT", srid=4326), nullable=True)
+
+    __table_args__ = (Index("idx_ref_noise_measurement_geom", "geom", postgresql_using="gist"),)
 
 
 class RefNoiseAircraft(Base):
@@ -74,6 +80,8 @@ class RefNoiseHourly(Base):
     station = Column(String, nullable=True, index=True)
     hour = Column(String, nullable=True)
     raw_score = Column(Float, nullable=True)
+    time_penalty = Column(Float, nullable=True)
+    lden_score = Column(Float, nullable=True)
 
 
 class RefNoiseIdwGrid(Base):

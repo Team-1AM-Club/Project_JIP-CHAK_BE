@@ -40,9 +40,25 @@ class RefSubwayCongestion(Base):
     __tablename__ = "ref_subway_congestion"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    station_name = Column(String, nullable=False, unique=True, index=True)
+    line_name = Column(String, nullable=True, index=True)
+    station_no = Column(String, nullable=True, index=True)
+    station_name = Column(String, nullable=False, index=True)
+    lat = Column(Float, nullable=True)
+    lon = Column(Float, nullable=True)
+    geom = Column(Geometry("POINT", srid=4326), nullable=True)
+    avg_congestion_total = Column(Float, nullable=True)
+    avg_congestion_weekday = Column(Float, nullable=True)
+    avg_congestion_weekend = Column(Float, nullable=True)
+    peak_congestion_total = Column(Float, nullable=True)
+    peak_congestion_weekday = Column(Float, nullable=True)
+    peak_congestion_weekend = Column(Float, nullable=True)
+    daily_passengers_total = Column(Float, nullable=True)
+    daily_passengers_weekday = Column(Float, nullable=True)
+    daily_passengers_weekend = Column(Float, nullable=True)
     peak_max_congestion = Column(Float, nullable=True)
     raw_score = Column(Float, nullable=True)
+
+    __table_args__ = (Index("idx_ref_subway_congestion_geom", "geom", postgresql_using="gist"),)
 
 
 class RefFloatingPopulation(Base):
@@ -51,4 +67,5 @@ class RefFloatingPopulation(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     dong_code = Column(String, nullable=False, unique=True, index=True)
     total_pop = Column(Float, nullable=True)
+    hourly_pop = Column(JSONB, nullable=True)
     raw_score = Column(Float, nullable=True)
