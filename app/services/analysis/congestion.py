@@ -107,9 +107,9 @@ def _population_hourly_chart(report: Report) -> dict | None:
         "values": values,
         "statuses": [_density_status(value) for value in values],
         "summary": {
-            "morning_peak": _summary_point(morning),
-            "evening_peak": _summary_point(evening),
-            "night": _summary_point(night),
+            "morning_peak": _summary_label(morning),
+            "evening_peak": _summary_label(evening),
+            "night": _summary_label(night),
         },
     }
 
@@ -139,7 +139,7 @@ def _bus_hourly_chart(report: Report) -> dict | None:
         "values": values,
         "stop_count": int(bus_hourly.get("stop_count") or 0),
         "summary": {
-            "peak": _summary_point(max(pairs, key=lambda item: item[1]) if pairs else None),
+            "peak": _summary_label(max(pairs, key=lambda item: item[1]) if pairs else None),
         },
     }
 
@@ -165,9 +165,9 @@ def _empty_population_hourly_chart() -> dict:
         "values": [0 for _ in labels],
         "statuses": ["분석중" for _ in labels],
         "summary": {
-            "morning_peak": None,
-            "evening_peak": None,
-            "night": None,
+            "morning_peak": "데이터 없음",
+            "evening_peak": "데이터 없음",
+            "night": "데이터 없음",
         },
         "data_available": False,
     }
@@ -183,7 +183,7 @@ def _empty_bus_hourly_chart(radius_m=500) -> dict:
         "values": [0 for _ in labels],
         "stop_count": 0,
         "summary": {
-            "peak": None,
+            "peak": "데이터 없음",
         },
         "data_available": False,
     }
@@ -318,6 +318,13 @@ def _summary_point(point: tuple[str, float] | None) -> dict | None:
         "value": value,
         "display_value": _people_label(value),
     }
+
+
+def _summary_label(point: tuple[str, float] | None) -> str:
+    if point is None:
+        return "데이터 없음"
+    hour, value = point
+    return f"{hour}시 {(_people_label(value) or '0명')}"
 
 
 def _density_status(value) -> str:

@@ -286,7 +286,7 @@ def _noise_hourly_chart(report: Report) -> dict | None:
         "lden_values": lden_values,
         "statuses": [_db_status(value) for value in lden_values],
         "summary": {
-            "peak": peak,
+            "peak": _peak_label(peak),
             "night_average": _round_value(night_average),
             "night_average_label": None if night_average is None else f"야간 평균 {_round_value(night_average)}dB",
         },
@@ -309,7 +309,7 @@ def _empty_noise_hourly_chart(measurement: dict | None = None) -> dict:
         "lden_values": [0 for _ in labels],
         "statuses": ["분석중" for _ in labels],
         "summary": {
-            "peak": None,
+            "peak": "데이터 없음",
             "night_average": None,
             "night_average_label": None,
         },
@@ -408,6 +408,16 @@ def _peak_point(labels: list[str], values: list[float | int | None]) -> dict | N
         "value": value,
         "display_value": _db_label(value),
     }
+
+
+def _peak_label(point: dict | None) -> str:
+    if not point:
+        return "데이터 없음"
+    hour = point.get("hour")
+    display_value = point.get("display_value")
+    if hour is None or display_value is None:
+        return "데이터 없음"
+    return f"{hour}시 {display_value}"
 
 
 def _night_average(labels: list[str], values: list[float | int | None]) -> float | None:
