@@ -92,7 +92,7 @@ def _population_hourly_chart(report: Report) -> dict | None:
     detail = (report.congestion_data or {}).get("population_detail") or {}
     hourly = detail.get("hourly_pop") or {}
     if not hourly:
-        return None
+        return _empty_population_hourly_chart()
     labels = [f"{hour:02d}" for hour in range(6, 23)]
     values = [_round_value(_hourly_value(hourly, label)) for label in labels]
     pairs = [(label, value) for label, value in zip(labels, values) if value is not None]
@@ -118,8 +118,8 @@ def _nearby_transport_chart(report: Report) -> dict:
     data = report.congestion_data or {}
     return {
         "title": "가까운 대중교통",
-        "subway": _subway_card(data.get("nearest_subway")),
-        "bus": _bus_card(data.get("nearest_bus")),
+        "subway": _subway_card(data.get("nearest_subway")) or _empty_subway_card(),
+        "bus": _bus_card(data.get("nearest_bus")) or _empty_bus_card(),
     }
 
 
@@ -127,7 +127,7 @@ def _bus_hourly_chart(report: Report) -> dict | None:
     bus_hourly = (report.congestion_data or {}).get("bus_hourly") or {}
     hourly = bus_hourly.get("hourly_pop") or {}
     if not hourly:
-        return None
+        return _empty_bus_hourly_chart(bus_hourly.get("radius_m", 500))
     labels = [f"{hour:02d}" for hour in range(6, 23)]
     values = [_round_value(_hourly_value(hourly, label)) for label in labels]
     pairs = [(label, value) for label, value in zip(labels, values) if value is not None]
@@ -155,6 +155,40 @@ def _chart_data(report: Report) -> dict:
     }
 
 
+def _empty_population_hourly_chart() -> dict:
+    labels = [f"{hour:02d}" for hour in range(6, 23)]
+    return {
+        "title": "시간대별 인구 밀도",
+        "scope": "생활권 기준",
+        "unit": "명",
+        "labels": labels,
+        "values": [0 for _ in labels],
+        "statuses": ["분석중" for _ in labels],
+        "summary": {
+            "morning_peak": None,
+            "evening_peak": None,
+            "night": None,
+        },
+        "data_available": False,
+    }
+
+
+def _empty_bus_hourly_chart(radius_m=500) -> dict:
+    labels = [f"{hour:02d}" for hour in range(6, 23)]
+    return {
+        "title": "주변 버스정류장 시간대별 유동인구",
+        "radius_m": radius_m or 500,
+        "unit": "명",
+        "labels": labels,
+        "values": [0 for _ in labels],
+        "stop_count": 0,
+        "summary": {
+            "peak": None,
+        },
+        "data_available": False,
+    }
+
+
 def _subway_card(subway: dict | None) -> dict | None:
     if not subway:
         return None
@@ -178,6 +212,27 @@ def _subway_card(subway: dict | None) -> dict | None:
     }
 
 
+def _empty_subway_card() -> dict:
+    return {
+        "type": "subway",
+        "station_name": "데이터 없음",
+        "line_name": None,
+        "distance_m": None,
+        "distance_label": "데이터 없음",
+        "travel_label": "확인 필요",
+        "status": "분석중",
+        "daily_passengers_total": 0,
+        "daily_passengers_label": "0명",
+        "daily_passengers_weekday": 0,
+        "daily_passengers_weekend": 0,
+        "avg_congestion_total": 0,
+        "avg_congestion_label": "0%",
+        "peak_congestion_total": 0,
+        "peak_congestion_label": "0%",
+        "data_available": False,
+    }
+
+
 def _bus_card(bus: dict | None) -> dict | None:
     if not bus:
         return None
@@ -195,6 +250,23 @@ def _bus_card(bus: dict | None) -> dict | None:
         "daily_avg_usage_label": _people_label(bus.get("daily_avg_usage")),
         "congestion_score": score,
         "congestion_score_label": _score_display(score),
+    }
+
+
+def _empty_bus_card() -> dict:
+    return {
+        "type": "bus",
+        "stop_name": "데이터 없음",
+        "stop_type": None,
+        "distance_m": None,
+        "distance_label": "데이터 없음",
+        "travel_label": "확인 필요",
+        "status": "분석중",
+        "daily_avg_usage": 0,
+        "daily_avg_usage_label": "0명",
+        "congestion_score": 0,
+        "congestion_score_label": "0점",
+        "data_available": False,
     }
 
 

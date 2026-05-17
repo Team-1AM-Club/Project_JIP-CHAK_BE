@@ -258,7 +258,7 @@ def _noise_hourly_chart(report: Report) -> dict | None:
     measurement = _dict_or_empty(table.get("measurement"))
     hourly_rows = _list_or_empty(table.get("hourly"))
     if not hourly_rows:
-        return None
+        return _empty_noise_hourly_chart(measurement)
 
     by_hour = {
         hour: row
@@ -290,6 +290,30 @@ def _noise_hourly_chart(report: Report) -> dict | None:
             "night_average": _round_value(night_average),
             "night_average_label": None if night_average is None else f"야간 평균 {_round_value(night_average)}dB",
         },
+    }
+
+
+def _empty_noise_hourly_chart(measurement: dict | None = None) -> dict:
+    measurement = _dict_or_empty(measurement)
+    labels = [f"{hour:02d}" for hour in range(24)]
+    distance_m = _round_distance(measurement.get("distance_m"))
+    return {
+        "title": "시간대별 평균 소음(dB)",
+        "subtitle": "가까운 측정망 기준",
+        "station": measurement.get("station") or "데이터 없음",
+        "distance_m": distance_m,
+        "distance_label": _distance_label(distance_m),
+        "unit": "dB",
+        "labels": labels,
+        "values": [0 for _ in labels],
+        "lden_values": [0 for _ in labels],
+        "statuses": ["분석중" for _ in labels],
+        "summary": {
+            "peak": None,
+            "night_average": None,
+            "night_average_label": None,
+        },
+        "data_available": False,
     }
 
 
