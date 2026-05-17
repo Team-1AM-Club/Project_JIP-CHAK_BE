@@ -1,3 +1,5 @@
+import math
+
 from app.core.meta_stats import get_stat
 from app.models.report import Report
 from app.services.analysis.detail import data_source, indicator, indicator_chart
@@ -41,15 +43,15 @@ def get_noise_detail(report: Report) -> dict:
 
 
 def _indicator_scores(report: Report) -> list[dict]:
-    table = report.noise_table or {}
-    traffic = table.get("traffic") or {}
-    measurement = table.get("measurement") or {}
+    table = _dict_or_empty(report.noise_table)
+    traffic = _dict_or_empty(table.get("traffic"))
+    measurement = _dict_or_empty(table.get("measurement"))
 
-    pub_count = report.noise_pub_density
-    complaint = report.noise_complaint
-    estimated_db = report.noise_db
-    road_noise = report.road_noise
-    measurement_leq = measurement.get("leq")
+    pub_count = _number_or_none(report.noise_pub_density)
+    complaint = _number_or_none(report.noise_complaint)
+    estimated_db = _number_or_none(report.noise_db)
+    road_noise = _number_or_none(report.road_noise)
+    measurement_leq = _number_or_none(measurement.get("leq"))
 
     pub_score = _pub_score(pub_count)
     complaint_score = _score("noise_complaint", complaint, inverse=True)
@@ -108,13 +110,24 @@ def _score(key: str, value: float | int | None, *, inverse: bool = False) -> int
     stat = get_stat(key)
     if not stat or value is None:
         return None
-    return normalize(value, stat["p05"], stat["p95"], inverse=inverse)
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return normalize(number, stat["p05"], stat["p95"], inverse=inverse)
 
 
 def _pub_score(count: float | int | None) -> int | None:
     if count is None:
         return None
-    value = float(count)
+    try:
+        value = float(count)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(value):
+        return None
     if value <= 0:
         return 100
     if value <= 2:
@@ -127,11 +140,11 @@ def _pub_score(count: float | int | None) -> int | None:
 
 
 def _noise_source_chart(report: Report) -> dict:
-    table = report.noise_table or {}
-    traffic = table.get("traffic") or {}
-    complaint = table.get("complaint") or {}
-    pub = table.get("pub") or {}
-    measurement = table.get("measurement") or {}
+    table = _dict_or_empty(report.noise_table)
+    traffic = _dict_or_empty(table.get("traffic"))
+    complaint = _dict_or_empty(table.get("complaint"))
+    pub = _dict_or_empty(table.get("pub"))
+    measurement = _dict_or_empty(table.get("measurement"))
 
     return {
         "title": "소음원별 영향",
@@ -146,13 +159,14 @@ def _noise_source_chart(report: Report) -> dict:
 
 
 def _traffic_item(report: Report, traffic: dict) -> dict:
-    score = _score("noise_traffic_point", report.road_noise, inverse=True)
+    road_noise = _number_or_none(report.road_noise)
+    score = _score("noise_traffic_point", road_noise, inverse=True)
     distance_m = _round_distance(traffic.get("distance_m"))
     return {
         "key": "traffic",
         "label": "도로교통 소음",
-        "value": _round_value(traffic.get("daily_traffic") or report.road_noise),
-        "display_value": _traffic_display(traffic, report.road_noise),
+        "value": _round_value(traffic.get("daily_traffic") or road_noise),
+        "display_value": _traffic_display(traffic, road_noise),
         "unit": "대/일",
         "status": _score_status(score),
         "description": "가까운 교통량 지점 기준",
@@ -171,9 +185,9 @@ def _traffic_item(report: Report, traffic: dict) -> dict:
 
 
 def _complaint_item(report: Report, complaint: dict) -> dict:
-    yearly = complaint.get("yearly_count")
+    yearly = _number_or_none(complaint.get("yearly_count"))
     monthly = None if yearly is None else float(yearly) / 12
-    score = _score("noise_complaint", report.noise_complaint, inverse=True)
+    score = _score("noise_complaint", _number_or_none(report.noise_complaint), inverse=True)
     avg = complaint.get("seoul_average_yearly")
     diff_label = _average_diff_label(yearly, avg)
     return {
@@ -196,13 +210,14 @@ def _complaint_item(report: Report, complaint: dict) -> dict:
 
 
 def _pub_item(report: Report, pub: dict) -> dict:
-    score = _pub_score(report.noise_pub_density)
-    radius_m = int(pub.get("radius_m") or 200)
+    pub_count = _number_or_none(report.noise_pub_density) or 0
+    score = _pub_score(pub_count)
+    radius_m = int(_number_or_none(pub.get("radius_m")) or 200)
     return {
         "key": "pub",
         "label": "유흥업소",
-        "value": int(report.noise_pub_density or 0),
-        "display_value": f"{int(report.noise_pub_density or 0)}곳",
+        "value": int(pub_count),
+        "display_value": f"{int(pub_count)}곳",
         "unit": "곳",
         "status": _score_status(score),
         "description": f"반경 {radius_m}m 내",
@@ -239,13 +254,19 @@ def _measurement_item(measurement: dict) -> dict:
 
 
 def _noise_hourly_chart(report: Report) -> dict | None:
-    table = report.noise_table or {}
-    measurement = table.get("measurement") or {}
-    hourly_rows = table.get("hourly") or []
+    table = _dict_or_empty(report.noise_table)
+    measurement = _dict_or_empty(table.get("measurement"))
+    hourly_rows = _list_or_empty(table.get("hourly"))
     if not hourly_rows:
         return None
 
-    by_hour = {_normalize_hour(row.get("hour")): row for row in hourly_rows}
+    by_hour = {
+        hour: row
+        for row in hourly_rows
+        if isinstance(row, dict)
+        for hour in [_normalize_hour(row.get("hour"))]
+        if hour is not None
+    }
     labels = [f"{hour:02d}" for hour in range(24)]
     values = [_round_value((by_hour.get(label) or {}).get("raw_score")) for label in labels]
     lden_values = [_round_value((by_hour.get(label) or {}).get("lden_score")) for label in labels]
@@ -273,9 +294,9 @@ def _noise_hourly_chart(report: Report) -> dict | None:
 
 
 def _summary(score: int, report: Report) -> str:
-    table = report.noise_table or {}
-    traffic = table.get("traffic") or {}
-    measurement = table.get("measurement") or {}
+    table = _dict_or_empty(report.noise_table)
+    traffic = _dict_or_empty(table.get("traffic"))
+    measurement = _dict_or_empty(table.get("measurement"))
     if score >= 80:
         return "주변 소음원이 적고 측정망 소음도도 낮아 비교적 조용한 생활 환경입니다."
     if score >= 60:
@@ -313,9 +334,11 @@ def _distance_label(distance_m: int | None) -> str | None:
 
 
 def _average_diff_label(value, average) -> str | None:
+    value = _number_or_none(value)
+    average = _number_or_none(average)
     if value is None or average in (None, 0):
         return None
-    diff = (float(value) - float(average)) / float(average) * 100
+    diff = (value - average) / average * 100
     direction = "↑" if diff >= 0 else "↓"
     return f"자치구 평균 대비 {abs(round(diff))}% {direction}"
 
@@ -345,7 +368,10 @@ def _normalize_hour(value) -> str | None:
     text = str(value).replace("시", "").strip()
     if not text:
         return None
-    return f"{int(text):02d}"
+    try:
+        return f"{int(text):02d}"
+    except ValueError:
+        return None
 
 
 def _peak_point(labels: list[str], values: list[float | int | None]) -> dict | None:
@@ -372,11 +398,36 @@ def _night_average(labels: list[str], values: list[float | int | None]) -> float
 
 
 def _round_value(value) -> float | int | None:
-    if value is None:
+    try:
+        number = _number_or_none(value)
+    except TypeError:
         return None
-    rounded = round(float(value), 1)
+    if number is None:
+        return None
+    rounded = round(number, 1)
     return int(rounded) if rounded.is_integer() else rounded
 
 
+def _number_or_none(value) -> float | None:
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return number
+
+
 def _round_distance(value) -> int | None:
-    return None if value is None else round(float(value))
+    rounded = _round_value(value)
+    return None if rounded is None else round(float(rounded))
+
+
+def _dict_or_empty(value) -> dict:
+    return value if isinstance(value, dict) else {}
+
+
+def _list_or_empty(value) -> list:
+    return value if isinstance(value, list) else []

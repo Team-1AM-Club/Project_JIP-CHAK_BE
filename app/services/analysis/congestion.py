@@ -94,7 +94,7 @@ def _population_hourly_chart(report: Report) -> dict | None:
     if not hourly:
         return None
     labels = [f"{hour:02d}" for hour in range(6, 23)]
-    values = [_round_value(hourly.get(label)) for label in labels]
+    values = [_round_value(_hourly_value(hourly, label)) for label in labels]
     pairs = [(label, value) for label, value in zip(labels, values) if value is not None]
     morning = _peak_between(pairs, 6, 11)
     evening = _peak_between(pairs, 16, 20)
@@ -129,7 +129,7 @@ def _bus_hourly_chart(report: Report) -> dict | None:
     if not hourly:
         return None
     labels = [f"{hour:02d}" for hour in range(6, 23)]
-    values = [_round_value(hourly.get(label)) for label in labels]
+    values = [_round_value(_hourly_value(hourly, label)) for label in labels]
     pairs = [(label, value) for label, value in zip(labels, values) if value is not None]
     return {
         "title": "주변 버스정류장 시간대별 유동인구",
@@ -220,6 +220,21 @@ def _peak_between(pairs: list[tuple[str, float]], start_hour: int, end_hour: int
 
 def _value_at(pairs: list[tuple[str, float]], hour: str) -> tuple[str, float] | None:
     return next((item for item in pairs if item[0] == hour), None)
+
+
+def _hourly_value(hourly: dict, label: str):
+    if label in hourly:
+        return hourly.get(label)
+    label_with_suffix = f"{label}시"
+    if label_with_suffix in hourly:
+        return hourly.get(label_with_suffix)
+
+    hour_int = str(int(label))
+    for key, value in hourly.items():
+        normalized = str(key).replace("시", "").strip()
+        if normalized.isdigit() and str(int(normalized)) == hour_int:
+            return value
+    return None
 
 
 def _summary_point(point: tuple[str, float] | None) -> dict | None:
